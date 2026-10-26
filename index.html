@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitHub Release TS Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+  :root{--bg:#0b0f14;--card:#121821;--border:#1e2a3a;--text:#e6edf3;--muted:#8b9bb0;--accent:#2ea043;--accent2:#58a6ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:260px;background:#0e141e;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px;font-size:14px;outline:none}
+  input[type=text]:focus{border-color:var(--accent2)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;transition:.15s}
+  button:hover{filter:brightness(1.1)}
+  button.secondary{background:#1f2a39}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  #video{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;border:1px solid var(--border)}
+  .meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:10px}
+  .pill{background:#0e141e;border:1px solid var(--border);padding:4px 8px;border-radius:999px}
+  .log{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;background:#0a0e15;border-radius:10px;padding:12px;max-height:240px;overflow:auto;border:1px solid var(--border)}
+  .list{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto}
+  .list li{background:#0e141e;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;justify-content:space-between;gap:10px}
+  .list li a{color:var(--accent2);text-decoration:none;word-break:break-all}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .hint{font-size:11px;color:var(--muted);margin-top:8px}
+  kbd{background:#1a2535;border:1px solid #2a3a52;border-bottom-width:2px;padding:1px 5px;border-radius:4px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GitHub Release .TS 連結ビューア</h1>
+  <div class="sub">ReleaseのTag URLを貼るだけで <code>out-000.ts</code> ... を自動検出して連結再生。GitHub Pages / ローカルでそのまま動作。CORS対応。</div>
+
+  <div class="card">
+    <div class="row">
+      <input id="urlInput" type="text" placeholder="https://github.com/uefn1/go-stream-capturer/releases/tag/rec-FIFA%2B-20261026-2137" />
+      <button id="loadBtn">読み込み & 再生</button>
+      <button id="probeBtn" class="secondary">フォールバック探索</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="tokenInput" type="text" placeholder="GitHub Token (任意 / APIレート制限回避)" style="max-width:300px"/>
+      <label class="switch"><input id="concatMode" type="checkbox" /> 強制連結Blobモード (HLSがダメな時)</label>
+      <button id="copyM3u8" class="secondary" style="margin-left:auto">m3u8をコピー</button>
+      <button id="downloadBtn" class="secondary">連結.tsをDL</button>
+    </div>
+    <div class="hint">対応URL: <kbd>/releases/tag/...</kbd> または <kbd>/releases/download/...</kbd> / 直接 <kbd>out-000.ts</kbd> のURLでもOK。クエリ <kbd>?url=...</kbd> で自動再生。</div>
+    <div class="meta">
+      <span id="status" class="pill">待機中</span>
+      <span id="count" class="pill">0 files</span>
+      <span id="apiStat" class="pill">API: 未使用</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <video id="video" controls playsinline></video>
+    <div class="controls">
+      <button id="pipBtn" class="secondary">PiP</button>
+      <span class="switch">再生速度 <input id="rate" type="range" min="0.25" max="2" step="0.25" value="1" /></span>
+      <span id="rateLabel" class="pill">1x</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="font-size:13px">ログ / 取得ファイル</strong>
+      <button id="clearBtn" class="secondary" style="padding:6px 10px;font-size:12px">クリア</button>
+    </div>
+    <div id="log" class="log"></div>
+    <ul id="fileList" class="list"></ul>
+  </div>
+
+  <div class="card" style="font-size:12px;color:var(--muted)">
+    <strong style="color:var(--text)">仕組み</strong><br/>
+    1. 入力URLから <code>owner / repo / tag</code> を抽出 → <code>api.github.com/repos/{owner}/{repo}/releases/tags/{tag}</code> でアセット一覧取得<br/>
+    2. <code>.ts</code> で終わるファイルを名前順ソート。失敗時は <code>out-000.ts ~ out-999.ts</code> を HEAD で順に探索 (最大連続404が3で停止)<br/>
+    3. HLSモード: 取得したURL群からその場で <code>m3u8</code> プレイリストBlobを生成 → <code>hls.js</code> に食わせてネイティブに連結再生。SafariはネイティブHLS。<br/>
+    4. Blob連結モード: 全.tsを fetch → Uint8Array連結 → <code>video/mp2t</code> Blobを video.src に。<br/>
+    GitHubの <code>releases/download</code> は CORS: <code>Access-Control-Allow-Origin: *</code> を返すのでブラウザから直接取得可能。
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const logEl = $('#log');
+const fileList = $('#fileList');
+const video = $('#video');
+const statusEl = $('#status');
+const countEl = $('#count');
+const apiStat = $('#apiStat');
+let currentUrls = [];
+let currentM3u8Text = '';
+let hls = null;
+
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent += `[${t}] ${msg}\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function setStatus(s){ statusEl.textContent = s; }
+
+function parseReleaseUrl(input){
+  input = (input||'').trim();
+  if(!input) return null;
+  // decode first for parsing but keep original
+  try {
+    // allow direct ts url
+    const direct = input.match(/(https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/?#]+)\/[^?#]+\.ts)/i);
+    if(direct){
+      const owner = direct[2];
+      const repo = direct[3];
+      const tag = decodeURIComponent(direct[4]);
+      const base = `https://github.com/${owner}/${repo}/releases/download/${encodeURIComponent(tag)}/`;
+      return {owner, repo, tag, base, directTs: direct[1]};
+    }
+    const m = input.match(/github\.com\/([^\/]+)\/([^\/]+)\/releases\/(?:tag|download)\/([^\/?#]+)/i);
+    if(m){
+      const owner = m[1];
+      const repo = m[2];
+      // tag may have extra path after
+      const rawTag = m[3];
+      const tag = decodeURIComponent(rawTag.split('/')[0]);
+      const base = `https://github.com/${owner}/${repo}/releases/download/${encodeURIComponent(tag)}/`;
+      return {owner, repo, tag, base, directTs: null};
+    }
+  } catch(e){ log('parse error: '+e); }
+  return null;
+}
+
+async function fetchReleaseAssets(owner, repo, tag, token){
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/tags/${encodeURIComponent(tag)}`;
+  apiStat.textContent = 'API: 取得中...';
+  const headers = { 'Accept': 'application/vnd.github+json' };
+  if(token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(apiUrl, {headers});
+  if(!res.ok){
+    const txt = await res.text();
+    throw new Error(`GitHub API ${res.status}: ${txt.slice(0,200)}`);
+  }
+  const data = await res.json();
+  apiStat.textContent = `API: OK (${data.assets?.length||0} assets)`;
+  return data.assets || [];
+}
+
+function sortTsNames(a,b){
+  // natural sort by name
+  return a.name.localeCompare(b.name, undefined, {numeric:true});
+}
+
+async function probeTsFiles(base, prefix='out-', start=0, max=600, maxConsecutiveFails=3){
+  log(`フォールバック探索開始: ${base}${prefix}XXX.ts`);
+  const urls = [];
+  let fails = 0;
+  for(let i=start;i<max;i++){
+    const name = `${prefix}${String(i).padStart(3,'0')}.ts`;
+    const url = base + name;
+    try {
+      // HEAD first, fallback to range GET if HEAD blocked
+      let r = await fetch(url, {method:'HEAD'});
+      if(!r.ok){
+        // some CDNs block HEAD, try small range
+        r = await fetch(url, {headers:{Range:'bytes=0-0'}});
+      }
+      if(r.ok){
+        urls.push(url);
+        fails = 0;
+        log(`found: ${name}`);
+        renderList(urls);
+        countEl.textContent = `${urls.length} files`;
+      } else {
+        fails++;
+        log(`not found (${r.status}): ${name}`);
+        if(fails>=maxConsecutiveFails && urls.length>0) break;
+        if(urls.length===0 && fails>=20) break; // if nothing found at all, stop early after 20
+      }
+    } catch(e){
+      fails++;
+      log(`fetch error ${name}: ${e.message}`);
+      if(fails>=maxConsecutiveFails && urls.length>0) break;
+    }
+    // small delay to avoid hammering
+    await new Promise(r=>setTimeout(r, 80));
+  }
+  return urls;
+}
+
+function buildM3u8(urls){
+  // naive 10s target, we don't know real durations but hls.js tolerates
+  const lines = ['#EXTM3U','#EXT-X-VERSION:3','#EXT-X-TARGETDURATION:10','#EXT-X-MEDIA-SEQUENCE:0','#EXT-X-PLAYLIST-TYPE:VOD'];
+  for(const u of urls){
+    lines.push('#EXTINF:10.0,');
+    lines.push(u);
+  }
+  lines.push('#EXT-X-ENDLIST');
+  return lines.join('\n');
+}
+
+function renderList(urls){
+  fileList.innerHTML = '';
+  urls.forEach((u,i)=>{
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = u; a.target='_blank'; a.textContent = u.split('/').pop();
+    const span = document.createElement('span');
+    span.textContent = `#${i}`;
+    span.style.color = '#8b9bb0';
+    li.appendChild(a);
+    li.appendChild(span);
+    fileList.appendChild(li);
+  });
+}
+
+async function playHls(urls){
+  currentUrls = urls;
+  currentM3u8Text = buildM3u8(urls);
+  const blob = new Blob([currentM3u8Text], {type:'application/vnd.apple.mpegurl'});
+  const blobUrl = URL.createObjectURL(blob);
+  renderList(urls);
+
+  if(hls){ try{hls.destroy();}catch{} hls=null; }
+
+  if($('#concatMode').checked){
+    return playConcat(urls);
+  }
+
+  if(Hls.isSupported()){
+    hls = new Hls({enableWorker:true, lowLatencyMode:false});
+    hls.loadSource(blobUrl);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ video.play().catch(()=>{}); setStatus('再生中 (hls.js)'); });
+    hls.on(Hls.Events.ERROR, (e,data)=>{
+      log(`hls.js error: ${data.type} / ${data.details} ${data.reason||''}`);
+      if(data.fatal){
+        setStatus('HLSエラー、Blobモードにフォールバック');
+        playConcat(urls);
+      }
+    });
+  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+    video.src = blobUrl;
+    video.addEventListener('loadedmetadata', ()=> video.play().catch(()=>{}), {once:true});
+    setStatus('再生中 (Safari native HLS)');
+  } else {
+    log('hls.js非対応、Blob連結にフォールバック');
+    await playConcat(urls);
+  }
+}
+
+async function playConcat(urls){
+  setStatus(`全${urls.length}ファイルをダウンロード中...`);
+  log(`Blob連結モードで ${urls.length} ファイルをフェッチ`);
+  const buffers = [];
+  let total = 0;
+  for(let i=0;i<urls.length;i++){
+    const u = urls[i];
+    setStatus(`DL ${i+1}/${urls.length}`);
+    const res = await fetch(u);
+    if(!res.ok) { log(`DL失敗 ${u}: ${res.status}`); continue; }
+    const buf = await res.arrayBuffer();
+    buffers.push(new Uint8Array(buf));
+    total += buf.byteLength;
+    log(`DL ${i+1}/${urls.length} ${(buf.byteLength/1024/1024).toFixed(2)}MB`);
+  }
+  const merged = new Uint8Array(total);
+  let off=0;
+  for(const b of buffers){ merged.set(b, off); off+=b.length; }
+  const blob = new Blob([merged], {type:'video/mp2t'});
+  const url = URL.createObjectURL(blob);
+  video.src = url;
+  await video.play().catch(()=>{});
+  setStatus(`再生中 (Blob連結 ${ (total/1024/1024).toFixed(1)}MB)`);
+  log(`連結完了: ${(total/1024/1024).toFixed(1)}MB`);
+  // keep for download
+  window._lastMergedBlobUrl = url;
+  window._lastMergedBlob = blob;
+}
+
+async function handleLoad(isProbeOnly=false){
+  const input = $('#urlInput').value.trim();
+  const token = $('#tokenInput').value.trim();
+  if(!input){ alert('URLを入力してください'); return; }
+  const parsed = parseReleaseUrl(input);
+  if(!parsed){
+    log('URL解析失敗: github.com/.../releases/tag/... 形式で入力してください');
+    setStatus('URL形式エラー');
+    return;
+  }
+  log(`解析: owner=${parsed.owner} repo=${parsed.repo} tag=${parsed.tag}`);
+  log(`base: ${parsed.base}`);
+  setStatus('取得中...');
+  fileList.innerHTML='';
+  logEl.textContent='';
+
+  let urls = [];
+  if(parsed.directTs){
+    // if direct ts url given, use its base to probe siblings
+    urls = [parsed.directTs];
+    log(`直接TS URLが指定されたので周辺を探索します`);
+    const siblings = await probeTsFiles(parsed.base);
+    if(siblings.length>0) urls = siblings;
+  } else if(!isProbeOnly){
+    try {
+      const assets = await fetchReleaseAssets(parsed.owner, parsed.repo, parsed.tag, token);
+      const tsAssets = assets.filter(a=>a.name.toLowerCase().endsWith('.ts')).sort(sortTsNames);
+      if(tsAssets.length>0){
+        urls = tsAssets.map(a=>a.browser_download_url);
+        log(`APIで ${urls.length} 個の .ts を検出`);
+      } else {
+        log('APIに .ts が無い、フォールバック探索に切替');
+        urls = await probeTsFiles(parsed.base);
+      }
+    } catch(e){
+      log(`API取得失敗: ${e.message} -> フォールバック探索`);
+      apiStat.textContent = 'API: 失敗';
+      urls = await probeTsFiles(parsed.base);
+    }
+  } else {
+    urls = await probeTsFiles(parsed.base);
+  }
+
+  if(urls.length===0){
+    setStatus('ファイルが見つかりません');
+    log('out-000.ts などが見つかりませんでした。Tag名のエンコード (%2B等) やリポジトリの公開設定を確認してください。');
+    return;
+  }
+  countEl.textContent = `${urls.length} files`;
+  await playHls(urls);
+}
+
+$('#loadBtn').addEventListener('click', ()=>handleLoad(false));
+$('#probeBtn').addEventListener('click', ()=>handleLoad(true));
+$('#clearBtn').addEventListener('click', ()=>{ logEl.textContent=''; fileList.innerHTML=''; });
+$('#copyM3u8').addEventListener('click', async ()=>{
+  if(!currentM3u8Text){ alert('まだm3u8がありません'); return; }
+  await navigator.clipboard.writeText(currentM3u8Text);
+  log('m3u8をクリップボードにコピーしました');
+});
+$('#downloadBtn').addEventListener('click', async ()=>{
+  if(currentUrls.length===0){ alert('ファイルがありません'); return; }
+  if(!window._lastMergedBlob){
+    // quick concat download without playing
+    log('連結データを生成してダウンロードします...');
+    await playConcat(currentUrls);
+  }
+  const a = document.createElement('a');
+  a.href = window._lastMergedBlobUrl;
+  a.download = `concat-${Date.now()}.ts`;
+  a.click();
+});
+$('#rate').addEventListener('input', e=>{
+  const v = parseFloat(e.target.value);
+  video.playbackRate = v;
+  $('#rateLabel').textContent = v+'x';
+});
+$('#pipBtn').addEventListener('click', async ()=>{
+  try{ if(document.pictureInPictureElement) await document.exitPictureInPicture(); else await video.requestPictureInPicture(); }catch(e){ log('PiP失敗: '+e.message); }
+});
+
+// auto load from ?url=
+window.addEventListener('DOMContentLoaded', ()=>{
+  const sp = new URLSearchParams(location.search);
+  const u = sp.get('url') || sp.get('src');
+  if(u){ $('#urlInput').value = u; handleLoad(false); }
+});
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>

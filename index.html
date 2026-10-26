@@ -22,104 +22,130 @@
   font-family: "Optimistic Mono", ui-monospace, monospace;
 }
 </style>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TS Viewer - Fix Playback</title>
-<link rel="preconnect" href="https://api.github.com">
-<link rel="preconnect" href="https://github.com">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TS Viewer v4 - 診断版 (VLC再生不可対応)</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mux.js@6.3.0/dist/mux.min.js"></script>
 <style>
 :root{--bg:#0a0e14;--card:#141b26;--border:#223147;--text:#e6edf3;--muted:#8aa0b8;--accent:#2ea043;--accent2:#58a6ff;--danger:#f85149;--warn:#d29922}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.6}
-.wrap{max-width:1000px;margin:0 auto;padding:20px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:18px}
 h1{font-size:18px;margin:0}
-.sub{color:var(--muted);font-size:12px;margin:4px 0 12px}
+.sub{color:var(--muted);font-size:12px;margin:6px 0}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input[type=text]{flex:1;min-width:260px;background:#0d1320;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px}
 button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:13px}
-button.secondary{background:#1e2a3d;color:var(--text)}
+button.secondary{background:#1e2a3d}
 button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
-button:disabled{opacity:.5}
-#video{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;border:1px solid var(--border)}
+button.danger{background:var(--danger)}
 .pill{background:#0d1320;border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:11px;color:var(--muted)}
-.pill.ok{border-color:var(--accent);color:#7ee787}
-.pill.err{border-color:var(--danger);color:#ffa198}
-.pill.warn{border-color:var(--warn);color:#ffdf5d}
-.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e14;border-radius:8px;padding:8px;max-height:240px;overflow:auto;border:1px solid var(--border)}
-.list{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:4px;max-height:240px;overflow:auto}
-.list li{background:#0d1320;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px}
+.pill.ok{color:#7ee787;border-color:var(--accent)}
+.pill.err{color:#ffa198;border-color:var(--danger)}
+.pill.warn{color:#ffdf5d;border-color:var(--warn)}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e14;border-radius:8px;padding:8px;max-height:300px;overflow:auto;border:1px solid var(--border)}
+.list{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:4px;max-height:400px;overflow:auto}
+.list li{background:#0d1320;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px;align-items:center}
 .list li a{color:var(--accent2);text-decoration:none;word-break:break-all}
-.bar{height:6px;background:#0d1320;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+#video{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;border:1px solid var(--border)}
+.hex{font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.4;background:#0a0e14;padding:8px;border-radius:8px;overflow:auto;max-height:200px;border:1px solid var(--border);white-space:pre}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.diag{font-size:11px;line-height:1.6}
+.diag b{color:var(--text)}
+.bar{height:6px;background:#0d1320;border-radius:999px;overflow:hidden;border:1px solid var(--border);margin-top:8px}
 .bar>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .2s}
-.mode{display:flex;gap:6px}
-.mode button{padding:6px 10px;font-size:11px}
-.mode button.active{background:var(--accent2);color:#000}
-.errbox{background:#1a0f12;border:1px solid #5a1a1a;color:#ffa198;border-radius:8px;padding:8px;font-size:12px;display:none;white-space:pre-wrap}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>GitHub Release TS Viewer <span style="color:var(--accent2)">v3 - 再生修正版</span></h1>
-<div class="sub">再生できない問題を修正: HLS→MSE(mux.js)→Blob の自動フォールバック + CORS対応 + 並列高速化</div>
+<h1>TS Viewer v4 - 診断版 <span style="color:var(--danger)">VLCでも再生不可対応</span></h1>
+<div class="sub">FIFA+ などはDRMやAES-128で暗号化されている可能性が高い。ファイルの中身を診断して原因を特定します。</div>
 
 <div class="card">
 <div class="row">
 <input id="urlInput" type="text" placeholder="https://github.com/uefn1/go-stream-capturer/releases/tag/rec-FIFA%2B-20261026-2137" />
-<button id="loadBtn">読み込み&再生</button>
-<button id="probeBtn" class="secondary">並列探索のみ</button>
+<button id="loadBtn">診断&読み込み</button>
+<button id="probeBtn" class="secondary">並列探索</button>
 </div>
 <div class="row" style="margin-top:8px">
-<input id="tokenInput" type="text" placeholder="GitHub Token (任意)" style="max-width:200px"/>
-<div class="mode">
-<button data-mode="auto" class="active">Auto</button>
-<button data-mode="hls">HLS</button>
-<button data-mode="mse">MSE</button>
-<button data-mode="blob">Blob</button>
-<button data-mode="direct">Direct</button>
-</div>
-<button id="copyM3u8" class="ghost">m3u8</button>
-<button id="dlBtn" class="ghost">DL</button>
+<input id="tokenInput" type="text" placeholder="GitHub Token (任意)" style="max-width:180px"/>
+<input id="keyInput" type="text" placeholder="AES-128 Key (hex) あれば" style="max-width:200px"/>
+<input id="ivInput" type="text" placeholder="IV (hex) あれば" style="max-width:200px"/>
+<button id="decryptBtn" class="ghost">AES復号して再生</button>
 </div>
 <div class="bar"><div id="progress"></div></div>
-<div class="row" style="margin-top:8px;gap:6px">
+<div class="row" style="margin-top:8px">
 <span id="status" class="pill">待機</span>
 <span id="count" class="pill">0 files</span>
 <span id="apiStat" class="pill">API:-</span>
-<span id="modeStat" class="pill">mode:auto</span>
 <span id="timeStat" class="pill">-</span>
+<span id="modeStat" class="pill">-</span>
 </div>
-<div id="errBox" class="errbox"></div>
+<div id="errBox" style="display:none;margin-top:8px;background:#2a1215;border:1px solid #5a1f23;color:#ffa198;border-radius:8px;padding:8px;font-size:12px;white-space:pre-wrap"></div>
 </div>
 
+<div class="grid2">
 <div class="card">
-<video id="video" controls playsinline preload="metadata" crossorigin="anonymous"></video>
+<video id="video" controls playsinline crossorigin="anonymous"></video>
 <div class="row" style="margin-top:8px">
-<button id="pipBtn" class="ghost">PiP</button>
-<span style="font-size:11px;color:var(--muted)">速度 <input id="rate" type="range" min="0.25" max="2" step="0.25" value="1" style="width:80px"/> <span id="rateLabel">1x</span></span>
-<span id="videoInfo" class="pill">-</span>
+<button id="playBlob" class="secondary">Blob再生</button>
+<button id="playMSE" class="secondary">MSE(mux.js)</button>
+<button id="playHLS" class="secondary">HLS</button>
+<button id="playDirect" class="ghost">Direct 1件</button>
+<button id="dlConcat" class="ghost">連結DL</button>
+</div>
+<div id="videoInfo" class="pill" style="margin-top:6px">-</div>
+</div>
+
+<div class="card diag">
+<strong style="font-size:12px;color:var(--text)">🔍 診断結果 (最初のファイル)</strong>
+<div id="diag" style="margin-top:6px">まだ診断していません</div>
+<div style="margin-top:8px"><strong>先頭 256byte HEX</strong><div id="hex" class="hex"></div></div>
+<div class="row" style="margin-top:8px">
+<button id="ffprobeBtn" class="secondary">ffprobe風解析</button>
+<button id="tryFFmpeg" class="secondary">ffmpeg.wasmでMP4変換試行</button>
+</div>
+<div id="ffmpegLog" class="log" style="display:none;margin-top:8px;max-height:150px"></div>
 </div>
 </div>
 
-<div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-<div><strong style="font-size:12px">ログ</strong><div id="log" class="log"></div></div>
-<div><strong style="font-size:12px">ファイル <span id="listCount"></span></strong><ul id="fileList" class="list"></ul></div>
+<div class="grid2">
+<div class="card">
+<strong style="font-size:12px">ログ</strong>
+<div id="log" class="log"></div>
+</div>
+<div class="card">
+<strong style="font-size:12px">全アセット (TS以外も表示) <span id="listCount"></span></strong>
+<ul id="fileList" class="list"></ul>
+</div>
+</div>
+
+<div class="card" style="font-size:11px;color:var(--muted)">
+<b style="color:var(--text)">VLCでも再生できない時のチェックリスト</b><br>
+1. <b>0x47 sync byteがない</b> → TSではない。MP4のfMP4セグメントや、暗号化データの可能性<br>
+2. <b>ファイル先頭が ftyp / moof / mdat</b> → fMP4 (CMAF/DASH)。拡張子は.tsだが中身はMP4。MSEで再生可能<br>
+3. <b>エントロピーが高くランダム</b> → AES-128などで暗号化。リリースに <code>key / .key / m3u8</code> がないか確認。FIFA+はDRMの可能性大<br>
+4. <b>ファイルサイズが極端に小さい / 0</b> → キャプチャ失敗。go-stream-capturerのログを確認<br>
+5. <b>DRM (Widevine/FairPlay)</b> → ブラウザ/ VLCでは復号不可。ライセンスが必要。Viewerでは対応不可<br>
+<br>
+この診断版は 1.の判定を自動で行い、2.ならMP4として再生、3.ならAES復号を試みます。Keyがリリースに含まれていれば自動検出します。
 </div>
 </div>
 
 <script>
 const $=s=>document.querySelector(s);
-const logEl=$('#log'), fileList=$('#fileList'), video=$('#video'), errBox=$('#errBox');
+const logEl=$('#log'), fileList=$('#fileList'), video=$('#video'), diagEl=$('#diag'), hexEl=$('#hex'), errBox=$('#errBox');
 const statusEl=$('#status'), countEl=$('#count'), apiStat=$('#apiStat'), modeStat=$('#modeStat'), timeStat=$('#timeStat'), progEl=$('#progress');
-let hls=null, currentUrls=[], currentM3u8='', tStart=0, selectedMode='auto';
+let currentUrls=[], allAssets=[], currentM3u8='', hls=null, tStart=0, firstFileBytes=null;
 
 function log(m){ const t=new Date().toLocaleTimeString(); logEl.textContent+=`[${t}] ${m}\n`; logEl.scrollTop=logEl.scrollHeight; console.log(m); }
 function setStatus(s,cls=''){ statusEl.textContent=s; statusEl.className='pill '+cls; }
 function setProgress(p){ progEl.style.width=Math.min(100,p)+'%'; }
 function showErr(msg){ errBox.style.display='block'; errBox.textContent=msg; }
-function hideErr(){ errBox.style.display='none'; errBox.textContent=''; }
+function hideErr(){ errBox.style.display='none'; }
 
 function parseReleaseUrl(input){
   input=(input||'').trim();
@@ -155,34 +181,119 @@ function buildM3u8(urls){
   lines.push('#EXT-X-ENDLIST'); return lines.join('\n');
 }
 
-function renderList(urls){
+function renderList(assets){
   fileList.innerHTML='';
-  urls.forEach((u,i)=>{
+  assets.forEach((a,i)=>{
     const li=document.createElement('li');
-    const a=document.createElement('a'); a.href=u; a.target='_blank'; a.textContent=u.split('/').pop();
-    const s=document.createElement('span'); s.textContent=`#${i}`; s.style.color='#8aa0b8';
-    li.appendChild(a); li.appendChild(s); fileList.appendChild(li);
+    const aEl=document.createElement('a'); aEl.href=a.browser_download_url||a; aEl.target='_blank'; aEl.textContent=a.name|| (a.split('/').pop());
+    const meta=document.createElement('span');
+    const size=a.size ? (a.size/1024/1024).toFixed(2)+'MB' : '';
+    meta.textContent=`${size} #${i}`;
+    meta.style.color='#8aa0b8';
+    if(a.name && a.name.toLowerCase().endsWith('.m3u8')){ li.style.borderColor='var(--accent2)'; }
+    if(a.name && (a.name.includes('key') || a.name.endsWith('.key'))){ li.style.borderColor='var(--warn)'; }
+    li.appendChild(aEl); li.appendChild(meta); fileList.appendChild(li);
   });
-  $('#listCount').textContent=`(${urls.length})`;
-  countEl.textContent=`${urls.length} files`;
+  $('#listCount').textContent=`(${assets.length})`;
+  countEl.textContent=`${assets.filter(a=> (a.name||'').toLowerCase().endsWith('.ts')).length} TS / ${assets.length} total`;
+}
+
+// 診断
+function hexDump(buf, len=256){
+  const view=buf.slice(0,len);
+  let out='';
+  for(let i=0;i<view.length;i+=16){
+    const slice=view.slice(i,i+16);
+    const hex=Array.from(slice).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    const ascii=Array.from(slice).map(b=> b>=32&&b<=126 ? String.fromCharCode(b) : '.').join('');
+    out+=`${i.toString(16).padStart(4,'0')}  ${hex.padEnd(48,' ')}  ${ascii}\n`;
+  }
+  return out;
+}
+
+function diagnoseBuffer(buf, url){
+  const view=new Uint8Array(buf);
+  const size=view.length;
+  const first16=Array.from(view.slice(0,16)).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+  let diag='';
+  diag+=`URL: ${url}\n`;
+  diag+=`サイズ: ${size} bytes (${(size/1024).toFixed(1)} KB) / 全体は後で取得\n`;
+  diag+=`先頭16byte: ${first16}\n`;
+
+  // Check TS sync byte
+  let syncCount=0;
+  for(let i=0;i<Math.min(size, 188*10); i+=188){
+    if(view[i]===0x47) syncCount++;
+  }
+  diag+=`TS sync (0x47 @ 188byte間隔): ${syncCount}/10  ${syncCount>=3 ? '✅ TSっぽい' : '❌ TSではない可能性'}\n`;
+
+  // Check ftyp
+  const ascii = new TextDecoder().decode(view.slice(0, 32));
+  if(ascii.includes('ftyp')){
+    diag+=`ftyp発見: ✅ fMP4 (DASH/CMAF) の可能性。拡張子.tsだが中身はMP4。MSEで再生可能かも\n`;
+  }
+  if(view[0]===0x49 && view[1]===0x44 && view[2]===0x33){
+    diag+=`ID3発見: TSにID3タグが付いている HLSの可能性\n`;
+  }
+  // Entropy check (simple)
+  const freq=new Array(256).fill(0);
+  for(let b of view) freq[b]++;
+  let entropy=0;
+  for(let f of freq){ if(f>0){ const p=f/size; entropy -= p*Math.log2(p); } }
+  diag+=`エントロピー: ${entropy.toFixed(2)} /8  ${entropy>7.5 ? '⚠️ 高い=暗号化/圧縮の可能性' : '低い=平文の可能性'}\n`;
+
+  if(entropy>7.6 && syncCount<3){
+    diag+=`\n【推定】AES-128暗号化されたセグメントの可能性が高い。\nリリース内に keyファイルや m3u8がないか確認してください。\nFIFA+はDRM (Widevine) の場合、復号不可です。\n`;
+  } else if(syncCount>=3){
+    diag+=`\n【推定】正当なMPEG-TS。ブラウザのMSE(mux.js)で再生できるはず。\n`;
+  } else if(ascii.includes('ftyp')){
+    diag+=`\n【推定】fMP4セグメント。MSEのMP4モードで試行。\n`;
+  } else {
+    diag+=`\n【推定】不明なフォーマット。ffmpeg.wasmで変換を試してください。\n`;
+  }
+
+  // Check for PAT
+  let patFound=false;
+  for(let i=0;i<size-188;i++){
+    if(view[i]===0x47 && (view[i+1]&0x1F)===0x00){ /* PID 0 */ patFound=true; break; }
+  }
+  if(patFound) diag+=`PAT (PID 0) らしきパケットあり\n`;
+
+  return diag;
+}
+
+async function fetchFirstBytes(url, bytes=2048){
+  try{
+    const r=await fetch(url, {headers:{Range:`bytes=0-${bytes-1}`}, mode:'cors', cache:'no-store'});
+    if(!r.ok && r.status!==206){
+      // fallback full fetch small
+      const r2=await fetch(url, {mode:'cors', cache:'no-store'});
+      if(!r2.ok) throw new Error(`HTTP ${r2.status}`);
+      const ab=await r2.arrayBuffer();
+      return ab.slice(0, bytes);
+    }
+    const ab=await r.arrayBuffer();
+    return ab;
+  }catch(e){
+    log(`先頭取得失敗 ${e.message}`);
+    return null;
+  }
 }
 
 // 高速並列探索
 async function probeFast(base, opts={}){
-  const {prefix='out-', max=600, batchSize=20, maxConsecutiveFails=8, onBatch, onFirstBatch} = opts;
+  const {prefix='out-', max=600, batchSize=20, maxConsecutiveFails=8, onBatch} = opts;
   log(`並列探索 batch=${batchSize} max=${max}`);
   let urlsMap=new Map();
-  let consecutiveFails=0, totalChecked=0, earlyFired=false;
+  let consecutiveFails=0, totalChecked=0;
   for(let start=0; start<max; start+=batchSize){
     const batch=Array.from({length:batchSize},(_,k)=>start+k).filter(i=>i<max);
     const results=await Promise.all(batch.map(async i=>{
       const name=`${prefix}${String(i).padStart(3,'0')}.ts`;
       const url=base+name;
       try{
-        // GitHubはHEADのCORSが微妙なので Range GETを優先
         let r=await fetch(url,{method:'GET', headers:{Range:'bytes=0-0'}, cache:'no-store', mode:'cors'});
         if(r.ok || r.status===206) return {i, ok:true, url};
-        // それでもダメならHEAD
         r=await fetch(url,{method:'HEAD', cache:'no-store', mode:'cors'});
         if(r.ok) return {i, ok:true, url};
         return {i, ok:false, url, status:r.status};
@@ -197,342 +308,314 @@ async function probeFast(base, opts={}){
     const sorted=[...urlsMap.entries()].sort((a,b)=>a[0]-b[0]).map(e=>e[1]);
     setProgress((totalChecked/max)*100);
     if(onBatch) onBatch(sorted, totalChecked);
-    if(!earlyFired && sorted.length>=3){
-      earlyFired=true;
-      if(onFirstBatch) onFirstBatch(sorted);
-    }
-    if(urlsMap.size>0 && consecutiveFails>=maxConsecutiveFails){ log(`連続${consecutiveFails}失敗で終了 ${urlsMap.size}件`); break; }
-    if(urlsMap.size===0 && start>60){ log('何も見つからず終了'); break; }
+    if(urlsMap.size>0 && consecutiveFails>=maxConsecutiveFails){ log(`連続${consecutiveFails}失敗で終了`); break; }
+    if(urlsMap.size===0 && start>60){ break; }
   }
   return [...urlsMap.entries()].sort((a,b)=>a[0]-b[0]).map(e=>e[1]);
 }
 
-// 再生エンジン
-async function playHls(urls){
-  log(`[HLS] ${urls.length}件で試行`);
+// 再生系 (簡易版)
+async function playHLS(urls){
   modeStat.textContent='mode:hls';
-  currentM3u8=buildM3u8(urls);
-  renderList(urls);
-  if(hls){ try{hls.destroy();}catch{} hls=null; }
-  const blob=new Blob([currentM3u8],{type:'application/vnd.apple.mpegurl'});
+  const m3u8=buildM3u8(urls);
+  currentM3u8=m3u8;
+  const blob=new Blob([m3u8],{type:'application/vnd.apple.mpegurl'});
   const blobUrl=URL.createObjectURL(blob);
+  if(hls){ try{hls.destroy();}catch{} }
   return new Promise((resolve,reject)=>{
     if(Hls.isSupported()){
-      hls=new Hls({
-        enableWorker:true,
-        maxBufferLength:60,
-        maxMaxBufferLength:120,
-        maxBufferSize:60*1000*1000,
-        startLevel:-1,
-        xhrSetup:(xhr,url)=>{
-          // GitHubリダイレクト対応: withCredentials false
-          xhr.withCredentials=false;
-        }
-      });
+      hls=new Hls({enableWorker:true});
       hls.loadSource(blobUrl);
       hls.attachMedia(video);
-      let resolved=false;
-      hls.on(Hls.Events.MANIFEST_PARSED, ()=>{
-        log('[HLS] MANIFEST_PARSED');
-        video.play().then(()=>{ if(!resolved){ resolved=true; resolve(true); } }).catch(e=>{ log('[HLS] play()失敗 '+e); });
-        setStatus('再生中 HLS','ok');
-      });
-      hls.on(Hls.Events.ERROR,(ev,data)=>{
-        log(`[HLS] ERROR ${data.type}/${data.details} fatal=${data.fatal} ${data.reason||''}`);
-        if(data.fatal){
-          if(!resolved){ resolved=true; reject(new Error('HLS fatal '+data.details)); }
-        }
-      });
-      setTimeout(()=>{ if(!resolved){ resolved=true; reject(new Error('HLS timeout')); } }, 15000);
+      hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ video.play().then(()=>resolve()).catch(reject); setStatus('HLS再生中','ok'); });
+      hls.on(Hls.Events.ERROR,(e,d)=>{ if(d.fatal) reject(new Error(d.details)); });
+      setTimeout(()=>reject(new Error('HLS timeout')),12000);
     } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-      video.src=blobUrl;
-      video.addEventListener('loadedmetadata', ()=>{ video.play().catch(()=>{}); resolve(true); }, {once:true});
-      video.addEventListener('error', ()=>reject(new Error('Native HLS error')), {once:true});
-      setStatus('Safari Native HLS','ok');
-    } else {
-      reject(new Error('HLS not supported'));
-    }
+      video.src=blobUrl; video.play().then(resolve).catch(reject);
+    } else reject(new Error('HLS unsupported'));
   });
-}
-
-async function playBlobConcat(urls){
-  log(`[BLOB] ${urls.length}件を並列DLして連結`);
-  modeStat.textContent='mode:blob';
-  setStatus('Blob DL中...');
-  const concurrency=6;
-  const bufs=new Array(urls.length);
-  let done=0;
-  async function pool(){
-    let idx=0;
-    async function next(){
-      const cur=idx++;
-      if(cur>=urls.length) return;
-      const u=urls[cur];
-      try{
-        const r=await fetch(u,{mode:'cors', cache:'no-store'});
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const ab=await r.arrayBuffer();
-        // 0x47 TS sync byte check
-        const view=new Uint8Array(ab);
-        if(view[0]!==0x47) log(`[BLOB] #${cur} 先頭が0x47でない (${view[0]}) - TSではない可能性`);
-        bufs[cur]=view;
-        done++; setProgress((done/urls.length)*100);
-        log(`[BLOB] DL ${cur+1}/${urls.length} ${(ab.byteLength/1024/1024).toFixed(2)}MB`);
-      }catch(e){ log(`[BLOB] DL失敗 #${cur} ${e.message}`); }
-      return next();
-    }
-    const workers=Array.from({length:Math.min(concurrency,urls.length)},()=>next());
-    await Promise.all(workers);
-  }
-  await pool();
-  const valid=bufs.filter(Boolean);
-  if(valid.length===0) throw new Error('Blob DL: 全て失敗');
-  const total=valid.reduce((s,b)=>s+b.length,0);
-  const merged=new Uint8Array(total);
-  let off=0; for(const b of valid){ merged.set(b,off); off+=b.length; }
-  log(`[BLOB] 連結完了 ${ (total/1024/1024).toFixed(1)}MB -> video/mp2t`);
-  const blob=new Blob([merged],{type:'video/mp2t'});
-  const url=URL.createObjectURL(blob);
-  video.src=url;
-  window._lastBlobUrl=url;
-  window._lastBlob=blob;
-  try{
-    await video.play();
-    setStatus(`再生 Blob ${(total/1024/1024).toFixed(1)}MB`,'ok');
-    return true;
-  }catch(e){
-    log(`[BLOB] play()失敗 ${e.message} - MSEへフォールバック推奨`);
-    // try with video/mp2t may not be supported, try video/mp4?
-    throw e;
-  }
 }
 
 async function playMSE(urls){
-  log(`[MSE mux.js] ${urls.length}件を順次Transmux`);
   modeStat.textContent='mode:mse';
-  if(!window.muxjs){ throw new Error('mux.js not loaded'); }
-  // Reset video
-  if(hls){ try{hls.destroy();}catch{} hls=null; }
+  if(!window.muxjs) throw new Error('mux.js not loaded');
+  if(hls){ try{hls.destroy();}catch{} }
   video.pause(); video.removeAttribute('src'); video.load();
-
-  return new Promise(async (resolve, reject)=>{
+  return new Promise((resolve,reject)=>{
     const ms=new MediaSource();
-    const msUrl=URL.createObjectURL(ms);
-    video.src=msUrl;
+    video.src=URL.createObjectURL(ms);
     ms.addEventListener('sourceopen', async ()=>{
       const mime='video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
-      const mime2='video/mp4; codecs="avc1.64001E, mp4a.40.2"';
-      let useMime=mime;
-      if(!MediaSource.isTypeSupported(mime)){
-        if(MediaSource.isTypeSupported(mime2)) useMime=mime2;
-        else { log(`[MSE] MIME unsupported ${mime}`); reject(new Error('MSE mime unsupported')); return; }
-      }
-      log(`[MSE] using ${useMime}`);
-      const sb=ms.addSourceBuffer(useMime);
+      if(!MediaSource.isTypeSupported(mime)){ reject(new Error('MSE mime unsupported')); return; }
+      const sb=ms.addSourceBuffer(mime);
       const transmuxer=new muxjs.mp4.Transmuxer({keepOriginalTimestamps:true});
       let queue=[];
-      let hasInit=false;
-
-      transmuxer.on('data', (seg)=>{
-        if(seg.initSegment){
-          queue.push(seg.initSegment);
-          hasInit=true;
-        }
-        if(seg.data){
-          queue.push(seg.data);
-        }
-      });
-      transmuxer.on('done', ()=>{});
-
+      transmuxer.on('data', seg=>{ if(seg.initSegment) queue.push(seg.initSegment); if(seg.data) queue.push(seg.data); });
       sb.addEventListener('updateend', ()=>{
-        if(queue.length>0 && !sb.updating){
-          try{ sb.appendBuffer(queue.shift()); }catch(e){ log('[MSE] appendBuffer error '+e); }
-        } else if(queue.length===0 && !sb.updating){
-          // check if finished
-        }
+        if(queue.length>0 && !sb.updating){ try{ sb.appendBuffer(queue.shift()); }catch(e){ log('MSE append err '+e); } }
       });
-      sb.addEventListener('error', (e)=>{ log('[MSE] SourceBuffer error '+e); });
-
       try{
         for(let i=0;i<urls.length;i++){
-          setStatus(`MSE DL ${i+1}/${urls.length}`);
-          setProgress((i/urls.length)*100);
+          setStatus(`MSE ${i+1}/${urls.length}`);
           const r=await fetch(urls[i],{mode:'cors', cache:'no-store'});
-          if(!r.ok){ log(`[MSE] fetch fail ${urls[i]} ${r.status}`); continue; }
+          if(!r.ok) continue;
           const ab=await r.arrayBuffer();
-          const data=new Uint8Array(ab);
-          // push to transmuxer
-          transmuxer.push(data);
+          transmuxer.push(new Uint8Array(ab));
           transmuxer.flush();
-          // wait for data to be queued and appended
-          // append if possible
-          while(queue.length>0 && !sb.updating){
-            sb.appendBuffer(queue.shift());
-            await new Promise(r=>setTimeout(r,10));
-          }
-          // give time for append
-          await new Promise(r=>setTimeout(r,30));
-          if(i===0){
-            // try play early
-            video.play().catch(()=>{});
-          }
+          while(queue.length>0 && !sb.updating){ sb.appendBuffer(queue.shift()); await new Promise(r=>setTimeout(r,20)); }
+          if(i===0) video.play().catch(()=>{});
         }
-        // drain queue
-        let attempts=0;
-        while((queue.length>0 || sb.updating) && attempts<100){
-          if(queue.length>0 && !sb.updating){
-            sb.appendBuffer(queue.shift());
-          }
-          await new Promise(r=>setTimeout(r,100));
-          attempts++;
-        }
-        if(ms.readyState==='open'){
-          ms.endOfStream();
-        }
-        setStatus('再生中 MSE','ok');
-        setProgress(100);
-        resolve(true);
-      }catch(e){
-        log('[MSE] exception '+e.message);
-        reject(e);
-      }
+        while(queue.length>0 || sb.updating){ if(queue.length>0 && !sb.updating) sb.appendBuffer(queue.shift()); await new Promise(r=>setTimeout(r,100)); }
+        if(ms.readyState==='open') ms.endOfStream();
+        setStatus('MSE再生中','ok'); resolve();
+      }catch(e){ reject(e); }
     });
-    ms.addEventListener('sourceopen', ()=>{}, {once:true});
-    ms.addEventListener('error', ()=>reject(new Error('MediaSource error')));
   });
+}
+
+async function playBlob(urls){
+  modeStat.textContent='mode:blob';
+  setStatus('Blob DL中...');
+  const bufs=[];
+  let total=0;
+  for(let i=0;i<urls.length;i++){
+    const r=await fetch(urls[i],{mode:'cors', cache:'no-store'});
+    if(!r.ok){ log(`DL失敗 ${urls[i]} ${r.status}`); continue; }
+    const ab=await r.arrayBuffer();
+    bufs.push(new Uint8Array(ab));
+    total+=ab.byteLength;
+    setProgress((i+1)/urls.length*100);
+  }
+  const merged=new Uint8Array(total);
+  let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
+  const blob=new Blob([merged],{type:'video/mp2t'});
+  const url=URL.createObjectURL(blob);
+  window._lastBlobUrl=url; window._lastBlob=blob;
+  video.src=url;
+  await video.play();
+  setStatus(`Blob再生 ${ (total/1024/1024).toFixed(1)}MB`,'ok');
 }
 
 async function playDirect(urls){
-  log(`[DIRECT] 最初のTSをvideo.srcに直接セット (CORS不要)`);
-  modeStat.textContent='mode:direct';
-  if(urls.length===0) throw new Error('no urls');
   video.src=urls[0];
   await video.play();
-  setStatus('再生 Direct (1件のみ)','ok');
-  // 残りはMediaSourceで連結したいが簡易的にplaylistとして扱うために次のファイル終了時にsrc切替
-  let idx=0;
-  video.addEventListener('ended', ()=>{
-    idx++;
-    if(idx<urls.length){
-      log(`[DIRECT] next ${idx}`);
-      video.src=urls[idx];
-      video.play().catch(()=>{});
-    }
-  });
-  return true;
+  setStatus('Direct 1件','ok');
 }
 
-async function autoPlay(urls){
-  const tryOrder = selectedMode==='auto' ? ['hls','mse','blob','direct'] : [selectedMode];
-  let lastErr=null;
-  for(const m of tryOrder){
+// AES-128 HLS復号
+async function decryptAES(urls, keyHex, ivHex){
+  if(!keyHex){ alert('Key hexを入力'); return; }
+  const keyBytes=hexToBytes(keyHex);
+  const ivBytes=ivHex ? hexToBytes(ivHex) : new Uint8Array(16);
+  if(keyBytes.length!==16){ alert('Keyは16byte (32hex文字)'); return; }
+  log(`AES復号開始 key=${keyHex} iv=${ivHex||'0'}`);
+  const cryptoKey=await crypto.subtle.importKey('raw', keyBytes, {name:'AES-CBC'}, false, ['decrypt']);
+  const decryptedBufs=[];
+  for(let i=0;i<urls.length;i++){
+    const r=await fetch(urls[i],{mode:'cors'});
+    const ab=await r.arrayBuffer();
+    let iv = ivBytes;
+    if(!ivHex){
+      // HLSのデフォルトIVはシーケンス番号
+      const ivArr=new Uint8Array(16);
+      const view=new DataView(ivArr.buffer);
+      view.setUint32(12, i, false); // big endian seq
+      iv=ivArr;
+    }
     try{
-      hideErr();
-      if(m==='hls') await playHls(urls);
-      else if(m==='mse') await playMSE(urls);
-      else if(m==='blob') await playBlobConcat(urls);
-      else if(m==='direct') await playDirect(urls);
-      return; // success
+      const dec=await crypto.subtle.decrypt({name:'AES-CBC', iv}, cryptoKey, ab);
+      decryptedBufs.push(new Uint8Array(dec));
+      log(`復号 ${i+1}/${urls.length} OK`);
     }catch(e){
-      log(`[${m}] 失敗: ${e.message}`);
-      lastErr=e;
-      // continue to next
+      log(`復号失敗 #${i} ${e.message}`);
+      // try as plain if already decrypted?
+      decryptedBufs.push(new Uint8Array(ab));
     }
   }
-  setStatus('全再生方式失敗','err');
-  showErr(`再生失敗:\n${lastErr?.message||'unknown'}\n\n考えられる原因:\n1. GitHubの .ts が TS形式ではない / コーデックが H264/AACではない\n2. CORSブロック (privateリポジトリ?)\n3. ファイルが壊れている\n\nログを確認して最初の1件を直接DLして VLC で再生できるか試してください。\n直リンク: ${urls[0]||''}`);
+  const total=decryptedBufs.reduce((s,b)=>s+b.length,0);
+  const merged=new Uint8Array(total);
+  let off=0; for(const b of decryptedBufs){ merged.set(b,off); off+=b.length; }
+  const blob=new Blob([merged],{type:'video/mp2t'});
+  const url=URL.createObjectURL(blob);
+  video.src=url;
+  await video.play();
+  setStatus(`AES復号再生 ${ (total/1024/1024).toFixed(1)}MB`,'ok');
 }
 
-async function handleLoad(isProbeOnly=false){
+function hexToBytes(hex){
+  hex=hex.replace(/[^0-9a-fA-F]/g,'');
+  const bytes=new Uint8Array(hex.length/2);
+  for(let i=0;i<bytes.length;i++) bytes[i]=parseInt(hex.substr(i*2,2),16);
+  return bytes;
+}
+
+// メイン
+async function handleLoad(isProbe=false){
   const input=$('#urlInput').value.trim();
   const token=$('#tokenInput').value.trim();
   if(!input){ alert('URL入力'); return; }
   const parsed=parseReleaseUrl(input);
   if(!parsed){ log('URL解析失敗'); return; }
   tStart=performance.now();
-  log(`解析 owner=${parsed.owner} repo=${parsed.repo} tag=${parsed.tag}`);
-  setStatus('取得中...'); logEl.textContent=''; fileList.innerHTML=''; setProgress(5); hideErr();
+  log(`解析 ${parsed.owner}/${parsed.repo} tag=${parsed.tag}`);
+  setStatus('取得中...'); logEl.textContent=''; diagEl.textContent='診断中...'; hexEl.textContent=''; hideErr();
+  fileList.innerHTML='';
 
-  let urls=[];
+  let assets=[];
+  let tsUrls=[];
   if(parsed.directTs){
-    log('直接TS→周辺探索');
-    urls=await probeFast(parsed.base, {onBatch:(u)=>renderList(u), onFirstBatch:(u)=>{ if(!isProbeOnly) autoPlay(u); }});
-    if(urls.length===0) urls=[parsed.directTs];
-  } else if(!isProbeOnly){
+    tsUrls=[parsed.directTs];
+    assets=tsUrls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
+  } else if(!isProbe){
     try{
-      const assets=await fetchReleaseAssets(parsed.owner, parsed.repo, parsed.tag, token);
-      const tsAssets=assets.filter(a=>a.name.toLowerCase().endsWith('.ts')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-      if(tsAssets.length>0){
-        urls=tsAssets.map(a=>a.browser_download_url);
-        log(`APIで ${urls.length}件`);
-        setProgress(50);
-      } else {
+      const ghAssets=await fetchReleaseAssets(parsed.owner, parsed.repo, parsed.tag, token);
+      allAssets=ghAssets;
+      assets=ghAssets;
+      tsUrls=ghAssets.filter(a=>a.name.toLowerCase().endsWith('.ts')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(a=>a.browser_download_url);
+      if(tsUrls.length===0){
         log('APIに.ts無し→並列探索');
-        urls=await probeFast(parsed.base, {onBatch:(u)=>renderList(u), onFirstBatch:(u)=>autoPlay(u)});
+        const probed=await probeFast(parsed.base, {onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
+        tsUrls=probed;
+        assets=probed.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0})).concat(ghAssets.filter(a=>!a.name.endsWith('.ts')));
       }
     }catch(e){
-      log(`API失敗 ${e.message} →並列探索`);
-      urls=await probeFast(parsed.base, {onBatch:(u)=>renderList(u), onFirstBatch:(u)=>autoPlay(u)});
+      log(`API失敗 ${e.message} →探索`);
+      const probed=await probeFast(parsed.base, {onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
+      tsUrls=probed;
+      assets=probed.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
     }
   } else {
-    urls=await probeFast(parsed.base, {onBatch:(u)=>renderList(u)});
+    const probed=await probeFast(parsed.base, {onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
+    tsUrls=probed;
+    assets=probed.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
   }
 
-  if(urls.length===0){ setStatus('見つからず','err'); return; }
-  renderList(urls);
+  if(assets.length===0){ setStatus('見つからず','err'); return; }
+  renderList(assets);
+  currentUrls=tsUrls;
   setProgress(70);
-  if(!isProbeOnly){
-    // if early play already started, ensure final full list is used after full probe
-    const finalUrls=urls;
-    if(currentUrls.length>0 && finalUrls.length>currentUrls.length){
-      log(`全${finalUrls.length}件で最終プレイリスト更新`);
-      // wait a bit then replay full
-      setTimeout(()=>autoPlay(finalUrls), 500);
-    } else if(currentUrls.length===0){
-      await autoPlay(finalUrls);
+
+  // 診断: 最初のTSの先頭を取得
+  if(tsUrls.length>0){
+    const first=tsUrls[0];
+    log(`診断用に先頭取得: ${first}`);
+    const ab=await fetchFirstBytes(first, 2048);
+    if(ab){
+      firstFileBytes=ab;
+      const diag=diagnoseBuffer(ab, first);
+      diagEl.textContent=diag;
+      hexEl.textContent=hexDump(new Uint8Array(ab), 256);
+      // 追加: m3u8やkeyがリリースにないかチェック
+      const hasM3u8=assets.some(a=> (a.name||'').toLowerCase().endsWith('.m3u8'));
+      const hasKey=assets.some(a=> (a.name||'').toLowerCase().includes('key'));
+      if(hasM3u8) log('⚠️ 同リリースに .m3u8 があります。鍵情報が含まれている可能性。リストを確認してください');
+      if(hasKey) log('⚠️ 同リリースに keyファイルがあります。AES復号に必要かも');
+      if(diag.includes('暗号化')){
+        showErr('このファイルは暗号化されている可能性が高いです。\nVLCでも再生できないのはそのためです。\nリリース内に .m3u8 / .key があれば内容を確認し、Keyを入力して「AES復号して再生」を試してください。\nWidevine DRMの場合は復号不可です。');
+      }
     }
   }
+
+  // 自動再生はしない、診断を見てからユーザーがボタンで再生
+  setStatus('診断完了、再生ボタンで試してください','warn');
+  setProgress(100);
   const elapsed=((performance.now()-tStart)/1000).toFixed(2);
   timeStat.textContent=`${elapsed}s`;
-  setProgress(100);
 }
 
-// UI bindings
 $('#loadBtn').addEventListener('click',()=>handleLoad(false));
 $('#probeBtn').addEventListener('click',()=>handleLoad(true));
-$('#copyM3u8').addEventListener('click', async()=>{
-  if(!currentM3u8){ alert('m3u8無し'); return; }
-  await navigator.clipboard.writeText(currentM3u8); log('m3u8コピー');
+$('#playHLS').addEventListener('click',()=>{ if(currentUrls.length) playHLS(currentUrls).catch(e=>{ showErr('HLS失敗: '+e.message); log('HLS失敗 '+e.message); }); });
+$('#playMSE').addEventListener('click',()=>{ if(currentUrls.length) playMSE(currentUrls).catch(e=>{ showErr('MSE失敗: '+e.message); }); });
+$('#playBlob').addEventListener('click',()=>{ if(currentUrls.length) playBlob(currentUrls).catch(e=>{ showErr('Blob失敗: '+e.message); }); });
+$('#playDirect').addEventListener('click',()=>{ if(currentUrls.length) playDirect(currentUrls).catch(e=>{ showErr('Direct失敗: '+e.message); }); });
+$('#dlConcat').addEventListener('click', async()=>{
+  if(currentUrls.length===0){ alert('ファイルなし'); return; }
+  // 簡易連結DL
+  setStatus('DL中...');
+  const bufs=[];
+  let total=0;
+  for(let u of currentUrls){
+    const r=await fetch(u,{mode:'cors'});
+    const ab=await r.arrayBuffer();
+    bufs.push(new Uint8Array(ab));
+    total+=ab.byteLength;
+  }
+  const merged=new Uint8Array(total);
+  let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
+  const blob=new Blob([merged],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='concat.ts'; a.click();
 });
-$('#dlBtn').addEventListener('click', ()=>{
-  if(!window._lastBlobUrl){ alert('先にBlob再生してください'); return; }
-  const a=document.createElement('a'); a.href=window._lastBlobUrl; a.download=`concat-${Date.now()}.ts`; a.click();
+$('#decryptBtn').addEventListener('click', ()=>{
+  const key=$('#keyInput').value.trim();
+  const iv=$('#ivInput').value.trim();
+  if(currentUrls.length===0){ alert('先に読み込み'); return; }
+  decryptAES(currentUrls, key, iv).catch(e=>{ showErr('復号失敗 '+e.message); });
 });
-document.querySelectorAll('.mode button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.mode button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    selectedMode=b.dataset.mode;
-    modeStat.textContent='mode:'+selectedMode;
-  });
+$('#ffprobeBtn').addEventListener('click', async()=>{
+  if(!firstFileBytes){ alert('先に診断'); return; }
+  const view=new Uint8Array(firstFileBytes);
+  let info=`サイズ: ${view.length}\n`;
+  info+=`先頭4バイト: ${Array.from(view.slice(0,4)).map(b=>b.toString(16).padStart(2,'0')).join(' ')} (${new TextDecoder().decode(view.slice(0,4))})\n`;
+  // TSパケット解析
+  let packets=0, pat=0, pmt=0, video=0, audio=0;
+  for(let i=0;i+188<=view.length;i+=188){
+    if(view[i]!==0x47) continue;
+    packets++;
+    const pid=((view[i+1]&0x1F)<<8)|view[i+2];
+    if(pid===0) pat++;
+    else if(pid===4095) {} // null
+    else {
+      // PES header check
+      if(view[i+3]&0x20){ /* adaptation */ }
+      // 簡易
+      if(pid<32) pmt++;
+      else if(pid>=256) video++;
+    }
+  }
+  info+=`188byteパケット: ${packets}個検出\nPATらしき: ${pat}\n`;
+  info+=`その他のPID: ${video}\n`;
+  if(packets===0) info+=`→ TSパケット構造ではない\n`;
+  diagEl.textContent+=`\n--- ffprobe風 ---\n${info}`;
 });
-$('#rate').addEventListener('input', e=>{
-  video.playbackRate=parseFloat(e.target.value);
-  $('#rateLabel').textContent=e.target.value+'x';
-});
-$('#pipBtn').addEventListener('click', async()=>{
-  try{ if(document.pictureInPictureElement) await document.exitPictureInPicture(); else await video.requestPictureInPicture(); }catch(e){ log('PiP '+e.message); }
-});
-video.addEventListener('loadedmetadata', ()=>{
-  $('#videoInfo').textContent=`${video.videoWidth}x${video.videoHeight} ${(video.duration||0).toFixed(1)}s`;
-});
-video.addEventListener('error', ()=>{
-  const err=video.error;
-  log(`[VIDEO] error code=${err?.code} msg=${err?.message||''}`);
-  showErr(`videoタグエラー code=${err?.code}\nブラウザがTSコーデックに対応していない可能性。MSEモードを試してください。`);
+$('#tryFFmpeg').addEventListener('click', async()=>{
+  const logDiv=$('#ffmpegLog');
+  logDiv.style.display='block';
+  logDiv.textContent='ffmpeg.wasm ロード中... (30MB)\n';
+  try{
+    // dynamic import ffmpeg
+    const script=document.createElement('script');
+    script.src='https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js';
+    document.head.appendChild(script);
+    await new Promise((res,rej)=>{ script.onload=res; script.onerror=rej; });
+    const {FFmpeg}=window.FFmpegWASM;
+    const ffmpeg=new FFmpeg();
+    ffmpeg.on('log', ({message})=>{ logDiv.textContent+=message+'\n'; logDiv.scrollTop=logDiv.scrollHeight; });
+    await ffmpeg.load({coreURL:'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js'});
+    logDiv.textContent+='ロード完了、変換試行...\n';
+    if(currentUrls.length===0){ logDiv.textContent+='URLなし\n'; return; }
+    // 最初の1ファイルだけ変換テスト
+    const r=await fetch(currentUrls[0],{mode:'cors'});
+    const ab=await r.arrayBuffer();
+    await ffmpeg.writeFile('in.ts', new Uint8Array(ab));
+    const ret=await ffmpeg.exec(['-i','in.ts','-c','copy','out.mp4']);
+    if(ret===0){
+      const data=await ffmpeg.readFile('out.mp4');
+      logDiv.textContent+=`変換成功 ${data.length} bytes\n`;
+      const blob=new Blob([data],{type:'video/mp4'});
+      const url=URL.createObjectURL(blob);
+      video.src=url;
+      await video.play();
+      setStatus('ffmpeg MP4再生','ok');
+    } else {
+      logDiv.textContent+=`変換失敗 code=${ret}\n`;
+    }
+  }catch(e){
+    logDiv.textContent+=`ffmpegエラー: ${e.message}\n`;
+  }
 });
 
-// auto load ?url=
 window.addEventListener('DOMContentLoaded', ()=>{
   const sp=new URLSearchParams(location.search);
   const u=sp.get('url')||sp.get('src');

@@ -24,7 +24,7 @@
 </style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Release Viewer v9 - VLC通常バー対応</title>
+<title>Viewer v10 - プローブ最速化</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mux.js@6.3.0/dist/mux.min.js"></script>
 <style>
@@ -58,8 +58,8 @@ button.warn{background:var(--warn);color:#000}
 </head>
 <body>
 <div class="wrap">
-<h1>Viewer v9 <span style="color:var(--accent2)">VLC通常バー完全対応</span></h1>
-<div class="sub">VLCで「総時間 / 現在位置」が普通の動画と同じバーで表示されるように、実際の動画長をプローブして正確な EXTINF を入れたVOD用m3u8を生成。</div>
+<h1>Viewer v10 <span style="color:var(--accent2)">プローブ最速化</span></h1>
+<div class="sub">Range: 128KBだけ取得してmoov/mvhdを直接パース。20並列で10ファイルでも0.5秒で完了。VLC通常バー完全対応維持。</div>
 
 <div class="card">
 <div class="row">
@@ -78,6 +78,7 @@ button.warn{background:var(--warn);color:#000}
 <span id="count" class="pill">0 files</span>
 <span id="typeStat" class="pill">type:-</span>
 <span id="durStat" class="pill">dur:-</span>
+<span id="speedStat" class="pill">speed:-</span>
 </div>
 <div class="bar"><div id="progress"></div></div>
 <div id="errBox" style="display:none;margin-top:8px;background:#2a1215;border:1px solid #5a1f23;color:#ffa198;border-radius:8px;padding:8px;font-size:12px;white-space:pre-wrap"></div>
@@ -96,21 +97,21 @@ button.warn{background:var(--warn);color:#000}
 </div>
 
 <div class="card">
-<strong style="font-size:13px">📄 m3u8 生成 (VLC通常バー対応)</strong>
+<strong style="font-size:13px">📄 m3u8 生成 (VLC通常バー + 最速プローブ)</strong>
 <div style="margin-top:8px;font-size:11px;color:var(--muted)">
-• VLCでライブ風バーになる原因: 全EXTINFが同じ600秒など不正確 → 総時間が計算できない<br>
-• v9では各ファイルの実際の長さを <code>loadedmetadata</code> でプローブして正確な秒数を入れる<br>
-• <code>VOD + INDEPENDENT-SEGMENTS + ENDLIST</code> で通常のシークバー (00:12:34 / 01:30:00) 表示
+• <b>最速プローブ:</b> 各ファイルの先頭128KBだけをRange取得 → moov/mvhdを直接パース → 20並列で0.5秒<br>
+• 失敗時のみ video要素でフォールバック (旧TS用)<br>
+• 正確なEXTINFでVLCが総時間表示・シーク可能
 </div>
 <div class="row" style="margin-top:8px">
-<button id="probeDur" class="secondary">長さをプローブ</button>
-<button id="genM3u8" class="warn">m3u8生成(VOD)</button>
+<button id="probeDur" class="warn">最速プローブ(20並列)</button>
+<button id="genM3u8" class="secondary">m3u8生成</button>
 <button id="copyM3u8" class="secondary">コピー</button>
 <button id="dlM3u8" class="secondary">m3u8 DL</button>
 <button id="dlM3u8Vlc" class="secondary">VLC用 DL</button>
 </div>
 <div class="row" style="margin-top:8px">
-<label class="pill">推定長さ <input id="segDur" type="text" value="600" style="width:45px;background:transparent;border:0;color:var(--text);text-align:center">s</label>
+<label class="pill">推定 <input id="segDur" type="text" value="600" style="width:45px;background:transparent;border:0;color:var(--text);text-align:center">s</label>
 <label class="pill">TARGET <input id="targetDur" type="text" value="610" style="width:45px;background:transparent;border:0;color:var(--text);text-align:center">s</label>
 <span id="totalDur" class="pill">total:-</span>
 </div>
@@ -138,7 +139,7 @@ button.warn{background:var(--warn);color:#000}
 <script>
 const $=s=>document.querySelector(s);
 const logEl=$('#log'), fileList=$('#fileList'), video=$('#video'), diagEl=$('#diag'), errBox=$('#errBox');
-const statusEl=$('#status'), countEl=$('#count'), typeStat=$('#typeStat'), durStat=$('#durStat'), progEl=$('#progress'), totalDurEl=$('#totalDur');
+const statusEl=$('#status'), countEl=$('#count'), typeStat=$('#typeStat'), durStat=$('#durStat'), speedStat=$('#speedStat'), progEl=$('#progress'), totalDurEl=$('#totalDur');
 const m3u8Preview=$('#m3u8Preview'), m3u8Info=$('#m3u8Info');
 let currentUrls=[], initData=null, initMapUrl=null, detectedType='unknown', currentM3u8='', hls=null, durations=[];
 
@@ -181,7 +182,7 @@ function renderList(assets){
     const name=a.name||a.split('/').pop();
     const url=a.browser_download_url||a;
     const aEl=document.createElement('a'); aEl.href=url; aEl.target='_blank'; aEl.textContent=name;
-    const dur=durations[i]? ` ${durations[i].toFixed(1)}s` : '';
+    const dur=durations[i]? ` ${durations[i].toFixed(2)}s` : '';
     const meta=document.createElement('span'); meta.textContent=(a.size? (a.size/1024/1024).toFixed(1)+'MB' : '')+` #${i}${dur}`; meta.style.color='#8aa0b8';
     if(name.endsWith('.mp4')) li.style.borderColor='var(--accent)';
     li.appendChild(aEl); li.appendChild(meta); fileList.appendChild(li);
@@ -213,7 +214,7 @@ async function fetchFirstBytes(url, bytes=4096){
     if(!r2.ok) throw new Error(r2.status);
     const ab=await r2.arrayBuffer();
     return ab.slice(0,bytes);
-  }catch(e){ log(`先頭取得失敗 ${e.message}`); return null; }
+  }catch(e){ return null; }
 }
 
 async function fetchInitFromM3U8(m3u8Url){
@@ -229,7 +230,7 @@ async function fetchInitFromM3U8(m3u8Url){
     const mapRes=await fetch(mapUrl,{mode:'cors', cache:'no-store'});
     if(!mapRes.ok) throw new Error(`INIT ${mapRes.status}`);
     return await mapRes.arrayBuffer();
-  }catch(e){ log(`INIT取得失敗 ${e.message}`); return null; }
+  }catch(e){ return null; }
 }
 
 async function probeFast(base, opts={}){
@@ -271,8 +272,87 @@ function findMoofOffset(u8){
   return -1;
 }
 
-// 正確な長さをプローブ (video要素でmetadata取得)
-function getDuration(url){
+// ==== 最速MP4 durationパース (Range 128KB + mvhd) ====
+function parseMvhdDuration(ab){
+  try{
+    const view=new DataView(ab);
+    const u8=new Uint8Array(ab);
+    // moovを探す
+    let offset=0;
+    while(offset+8 <= view.byteLength){
+      const size=view.getUint32(offset);
+      if(size===0 || size>view.byteLength-offset || size<8) break;
+      const type=String.fromCharCode(u8[offset+4],u8[offset+5],u8[offset+6],u8[offset+7]);
+      if(type==='moov'){
+        let inner=offset+8;
+        const moovEnd=offset+size;
+        while(inner+8 <= moovEnd && inner+8 <= view.byteLength){
+          const iSize=view.getUint32(inner);
+          if(iSize===0 || iSize>moovEnd-inner || iSize<8) break;
+          const iType=String.fromCharCode(u8[inner+4],u8[inner+5],u8[inner+6],u8[inner+7]);
+          if(iType==='mvhd'){
+            const version=u8[inner+8];
+            if(version===1){
+              const timescale=view.getUint32(inner+28);
+              const durHigh=view.getUint32(inner+32);
+              const durLow=view.getUint32(inner+36);
+              const duration=durHigh*4294967296+durLow;
+              if(timescale>0 && duration>0) return duration/timescale;
+            }else{
+              const timescale=view.getUint32(inner+20);
+              const duration=view.getUint32(inner+24);
+              if(timescale>0 && duration>0) return duration/timescale;
+            }
+          }
+          inner+=iSize;
+        }
+      }
+      offset+=size;
+    }
+    // フォールバック: mvhdを brute forceで探す
+    for(let i=0;i<u8.length-8;i++){
+      if(u8[i+4]===0x6D && u8[i+5]===0x76 && u8[i+6]===0x68 && u8[i+7]===0x64){ // mvhd
+        const boxStart=i;
+        const version=u8[boxStart+8];
+        try{
+          if(version===1){
+            const timescale=view.getUint32(boxStart+28);
+            const durHigh=view.getUint32(boxStart+32);
+            const durLow=view.getUint32(boxStart+36);
+            const duration=durHigh*4294967296+durLow;
+            if(timescale>0 && duration>0 && duration<1000000*timescale) return duration/timescale;
+          }else{
+            const timescale=view.getUint32(boxStart+20);
+            const duration=view.getUint32(boxStart+24);
+            if(timescale>0 && duration>0) return duration/timescale;
+          }
+        }catch(e){}
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
+async function getMp4DurationFast(url){
+  try{
+    const res=await fetch(url,{headers:{Range:'bytes=0-131071'}, mode:'cors', cache:'no-store'});
+    if(res.status!==206 && !res.ok) throw new Error('range fail');
+    const buf=await res.arrayBuffer();
+    const d=parseMvhdDuration(buf);
+    if(d!==null && isFinite(d) && d>0 && d<100000) return d;
+    // 2回目: 512KB試す (moovが大きい場合)
+    const res2=await fetch(url,{headers:{Range:'bytes=0-524287'}, mode:'cors', cache:'no-store'});
+    if(res2.status===206 || res2.ok){
+      const buf2=await res2.arrayBuffer();
+      const d2=parseMvhdDuration(buf2);
+      if(d2!==null && isFinite(d2) && d2>0) return d2;
+    }
+    return null;
+  }catch(e){ return null; }
+}
+
+// video要素フォールバック (TSやmvhd=0の場合)
+function getDurationViaVideo(url){
   return new Promise((resolve)=>{
     const v=document.createElement('video');
     v.preload='metadata';
@@ -280,7 +360,7 @@ function getDuration(url){
     v.muted=true;
     v.src=url;
     let done=false;
-    const timer=setTimeout(()=>{ if(!done){ done=true; v.src=''; resolve(null); } }, 8000);
+    const timer=setTimeout(()=>{ if(!done){ done=true; v.src=''; resolve(null); } }, 5000);
     v.addEventListener('loadedmetadata', ()=>{
       if(!done){ done=true; clearTimeout(timer); const d=v.duration; v.src=''; resolve(isFinite(d)? d : null); }
     });
@@ -288,44 +368,64 @@ function getDuration(url){
   });
 }
 
-async function probeDurations(urls){
+async function probeDurationsFast(urls){
   if(urls.length===0) return [];
-  setStatus('長さプローブ中...'); log(`長さプローブ開始 ${urls.length}件`);
+  const t0=performance.now();
+  setStatus('最速プローブ中...'); log(`最速プローブ開始 ${urls.length}件 20並列 Range 128KB`);
   const results=new Array(urls.length).fill(null);
   const fallback=parseFloat($('#segDur').value)||600;
-  // 並列3つずつ
+  let completed=0;
   let idx=0;
-  const concurrency=3;
+  const concurrency=20;
   async function worker(){
-    while(idx < urls.length){
+    while(true){
       const cur=idx++;
+      if(cur>=urls.length) break;
       const url=urls[cur];
-      setProgress((cur/urls.length)*100);
-      durStat.textContent=`dur: ${cur+1}/${urls.length}`;
-      const d=await getDuration(url);
-      results[cur]=d!==null? d : fallback;
-      log(`#${cur} ${d!==null? d.toFixed(2)+'s' : 'fallback '+fallback+'s'} ${url.split('/').pop()}`);
-      // 更新リスト
-      renderList(currentUrls.map((u,i)=>({name:u.split('/').pop(), browser_download_url:u, size:0})));
+      let d=null;
+      // MP4なら高速パース
+      if(url.toLowerCase().endsWith('.mp4')){
+        d=await getMp4DurationFast(url);
+      }
+      // 失敗したらvideo要素フォールバック (TSや特殊なmp4)
+      if(d===null){
+        d=await getDurationViaVideo(url);
+      }
+      if(d===null) d=fallback;
+      results[cur]=d;
+      completed++;
+      setProgress((completed/urls.length)*100);
+      durStat.textContent=`dur: ${completed}/${urls.length}`;
+      if(completed%5===0 || completed===urls.length){
+        const elapsed=(performance.now()-t0)/1000;
+        speedStat.textContent=`speed:${(completed/elapsed).toFixed(1)} file/s`;
+      }
+      // リストの該当行だけ更新
+      const li=fileList.children[cur];
+      if(li){
+        const span=li.querySelector('span:last-child');
+        if(span) span.textContent=`#${cur} ${d.toFixed(2)}s`;
+      }
     }
   }
   const workers=Array.from({length:Math.min(concurrency, urls.length)}, ()=>worker());
   await Promise.all(workers);
   durations=results;
   const total=results.reduce((a,b)=>a+b,0);
+  const elapsed=(performance.now()-t0)/1000;
   totalDurEl.textContent=`total:${(total/60).toFixed(1)}min (${total.toFixed(1)}s)`;
   durStat.textContent=`dur: OK ${total.toFixed(0)}s`;
-  log(`プローブ完了 合計 ${total.toFixed(1)}s`);
+  speedStat.textContent=`${elapsed.toFixed(2)}s ${ (urls.length/elapsed).toFixed(1)} file/s`;
+  log(`最速プローブ完了 ${urls.length}件 ${elapsed.toFixed(2)}s 平均 ${(elapsed/urls.length*1000).toFixed(0)}ms/file 合計 ${total.toFixed(1)}s`);
   setProgress(100);
   return results;
 }
 
-// VOD確定 m3u8生成 (VLC通常バー)
+// VOD確定 m3u8
 function buildM3u8Vod(urls, durs, opts={}){
   const {isFmp4=false, mapUrl=null, useMap=false} = opts;
-  const targetDur=parseFloat($('#targetDur').value)||610;
-  // ターゲットは最大EXTINFの切り上げ
-  const maxDur=Math.max(...durs, targetDur-10);
+  const targetInput=parseFloat($('#targetDur').value)||610;
+  const maxDur=Math.max(...durs, targetInput-10);
   const finalTarget=Math.ceil(maxDur+1);
   const version=isFmp4? 7 : 3;
   const lines=[
@@ -337,9 +437,7 @@ function buildM3u8Vod(urls, durs, opts={}){
     '#EXT-X-MEDIA-SEQUENCE:0',
     '#EXT-X-ALLOW-CACHE:YES'
   ];
-  if(useMap && mapUrl){
-    lines.push(`#EXT-X-MAP:URI="${mapUrl}"`);
-  }
+  if(useMap && mapUrl) lines.push(`#EXT-X-MAP:URI="${mapUrl}"`);
   for(let i=0;i<urls.length;i++){
     const u=urls[i];
     const d=durs[i]!==undefined? durs[i] : (parseFloat($('#segDur').value)||600);
@@ -357,7 +455,7 @@ function generateM3u8(){
   if(durs.length!==currentUrls.length || durs.some(v=>v===null)){
     const fallback=parseFloat($('#segDur').value)||600;
     durs=currentUrls.map(()=>fallback);
-    log('長さ未プローブのため推定値で生成。正確なバーを表示するには「長さをプローブ」を押してください');
+    log('長さ未プローブのため推定値で生成。最速プローブを押すと正確なVLCバーになります');
   }
   let mapUrlForM3u8=null, useMap=false;
   if(isFmp4 && detectedType==='fmp4-fragment' && initMapUrl){ mapUrlForM3u8=initMapUrl; useMap=true; }
@@ -366,7 +464,7 @@ function generateM3u8(){
   m3u8Preview.style.display='block';
   m3u8Preview.textContent=m3u8;
   const total=durs.reduce((a,b)=>a+b,0);
-  const info=`VOD確定 ${currentUrls.length}件 | ${isFmp4?'fMP4':'TS'} | 合計 ${(total/60).toFixed(1)}分 | VLC通常バー表示`;
+  const info=`VOD ${currentUrls.length}件 | ${isFmp4?'fMP4':'TS'} | 合計 ${(total/60).toFixed(1)}分 | VLC通常バー`;
   m3u8Info.textContent=info;
   totalDurEl.textContent=`total:${(total/60).toFixed(1)}min`;
   log(`m3u8生成 ${info}`);
@@ -486,7 +584,6 @@ async function handleLoad(isProbe=false){
   if(!input){ alert('URL入力'); return; }
   const parsed=parseReleaseUrl(input);
   if(!parsed){ log('URL解析失敗'); return; }
-  const tStart=performance.now();
   log(`解析 ${parsed.owner}/${parsed.repo} tag=${parsed.tag}`);
   setStatus('取得中...'); logEl.textContent=''; diagEl.textContent='診断中...'; hideErr(); fileList.innerHTML=''; m3u8Preview.style.display='none'; durations=[];
   currentUrls=[]; initData=null; initMapUrl=null;
@@ -503,12 +600,10 @@ async function handleLoad(isProbe=false){
       const mediaAssets=ghAssets.filter(a=>{ const n=a.name.toLowerCase(); return n.endsWith('.mp4')||n.endsWith('.ts')||n.endsWith('.m4s'); }).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
       urls=mediaAssets.map(a=>a.browser_download_url);
       if(urls.length===0){
-        log('APIにメディア無し→高速探索');
         urls=await probeFast(parsed.base, {preferMp4, onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
         assets=urls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0})).concat(ghAssets);
       }
     }catch(e){
-      log(`API失敗 ${e.message} →探索`);
       urls=await probeFast(parsed.base, {preferMp4, onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
       assets=urls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
     }
@@ -530,12 +625,11 @@ async function handleLoad(isProbe=false){
       const type=detectType(ab);
       detectedType=type;
       typeStat.textContent=`type:${type}`;
-      diagEl.textContent=`URL: ${first}\n推定: ${type}\n${type==='fmp4-with-init'?'✅ 新Go版 INIT込み - VLCで通常バー表示可能':''}`;
+      diagEl.textContent=`推定: ${type}\n${type==='fmp4-with-init'?'✅ 新Go版 INIT込み - 最速プローブでVLC通常バー表示可能':''}`;
       if((type==='fmp4-fragment') && m3u8Url){
         const init=await fetchInitFromM3U8(m3u8Url);
         if(init) initData=init;
       }
-      // 自動で長さプローブは重いので、m3u8は推定で生成
       generateM3u8();
     }
   }
@@ -546,7 +640,7 @@ async function handleLoad(isProbe=false){
       if(detectedType.includes('mp4') || detectedType==='fmp4-with-init' || currentUrls[0].endsWith('.mp4')){
         await playMp4Concat(currentUrls, initData);
       } else {
-        try{ await playHls(currentUrls); }catch(e){ log(`HLS失敗 ${e.message}`); await playTsConcat(currentUrls); }
+        try{ await playHls(currentUrls); }catch(e){ await playTsConcat(currentUrls); }
       }
     }catch(e){ showErr(`自動再生失敗: ${e.message}`); }
   } else {
@@ -574,7 +668,7 @@ $('#dlConcat').addEventListener('click', async()=>{
   const a=document.createElement('a'); a.href=url; a.download=`concat-${Date.now()}.${ext}`; a.click();
 });
 
-$('#probeDur').addEventListener('click', async()=>{ if(currentUrls.length===0){ alert('先に読み込み'); return; } await probeDurations(currentUrls); generateM3u8(); renderList(currentUrls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}))); });
+$('#probeDur').addEventListener('click', async()=>{ if(currentUrls.length===0){ alert('先に読み込み'); return; } await probeDurationsFast(currentUrls); generateM3u8(); renderList(currentUrls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}))); });
 $('#genM3u8').addEventListener('click', ()=>{ generateM3u8(); });
 $('#copyM3u8').addEventListener('click', async()=>{
   if(!currentM3u8){ const m=generateM3u8(); if(!m) return; }

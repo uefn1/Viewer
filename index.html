@@ -24,47 +24,45 @@
 </style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Release Viewer v6 - Final / fMP4+TS両対応</title>
+<title>Release Viewer v7 - m3u8生成対応</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mux.js@6.3.0/dist/mux.min.js"></script>
 <link rel="preconnect" href="https://api.github.com">
-<link rel="preconnect" href="https://github.com">
 <style>
-:root{--bg:#0a0e14;--card:#131b29;--border:#22334d;--text:#e6edf3;--muted:#8aa0b8;--accent:#2ea043;--accent2:#58a6ff;--warn:#d29922;--danger:#f85149}
+:root{--bg:#0a0e14;--card:#131b29;--border:#22334d;--text:#e6edf3;--muted:#8aa0b8;--accent:#2ea043;--accent2:#58a6ff;--warn:#d29922}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;line-height:1.5}
+body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.5}
 .wrap{max-width:1120px;margin:0 auto;padding:20px}
-h1{font-size:20px;margin:0;letter-spacing:.2px}
+h1{font-size:20px;margin:0}
 .sub{color:var(--muted);font-size:12px;margin:6px 0 12px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input[type=text]{flex:1;min-width:260px;background:#0d1525;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px 13px;font-size:14px;outline:none}
 input[type=text]:focus{border-color:var(--accent2)}
-button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;transition:.15s;font-size:13px}
-button:hover{filter:brightness(1.1)}
+button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:13px}
 button.secondary{background:#1e2d45}
 button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+button.warn{background:var(--warn);color:#000}
 .pill{background:#0d1525;border:1px solid var(--border);padding:3px 9px;border-radius:999px;font-size:11px;color:var(--muted)}
 .pill.ok{color:#7ee787;border-color:#2ea043}
 .pill.err{color:#ffa198;border-color:#f85149}
-.pill.warn{color:#ffdf5d;border-color:#d29922}
 #video{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;border:1px solid var(--border)}
-.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e14;border-radius:10px;padding:10px;max-height:280px;overflow:auto;border:1px solid var(--border)}
-.list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:5px;max-height:420px;overflow:auto}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e14;border-radius:10px;padding:10px;max-height:260px;overflow:auto;border:1px solid var(--border)}
+.list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:5px;max-height:380px;overflow:auto}
 .list li{background:#0d1525;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;display:flex;justify-content:space-between;gap:10px;align-items:center}
 .list li a{color:var(--accent2);text-decoration:none;word-break:break-all}
 .grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-.hex{font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.4;background:#0a0e14;padding:8px;border-radius:8px;overflow:auto;max-height:180px;border:1px solid var(--border);white-space:pre}
+.hex{font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.4;background:#0a0e14;padding:8px;border-radius:8px;overflow:auto;max-height:160px;border:1px solid var(--border);white-space:pre}
 .bar{height:6px;background:#0d1525;border-radius:999px;overflow:hidden;border:1px solid var(--border);margin-top:10px}
 .bar>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .2s}
-.hint{font-size:11px;color:var(--muted);margin-top:6px}
+.m3u8box{font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;background:#0a0e14;border:1px solid var(--border);border-radius:10px;padding:10px;max-height:320px;overflow:auto}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>GitHub Release 連結ビューア v6 <span style="color:var(--accent2)">Final</span></h1>
-<div class="sub">FIFA+ などの fMP4(CMAF) に対応。Go側の最新版 <code>redirect-ready + INIT込み</code> では <code>out-*.mp4</code> がVLCでも再生可能。旧 <code>.ts</code> も自動判定して再生。</div>
+<h1>Release Viewer v7 <span style="color:var(--accent2)">m3u8生成対応</span></h1>
+<div class="sub">高速探索 + fMP4/TS両対応 + m3u8生成/DL。Go最新版(out-*.mp4 INIT込み)でも旧out-*.tsでもOK。</div>
 
 <div class="card">
 <div class="row">
@@ -73,53 +71,54 @@ button.ghost{background:transparent;border:1px solid var(--border);color:var(--m
 <button id="probeBtn" class="secondary">高速探索</button>
 </div>
 <div class="row" style="margin-top:8px">
-<input id="m3u8Input" type="text" placeholder="旧TS用: 元m3u8 URLが分かれば入力 (fMP4のINIT取得) 任意" style="flex:2"/>
-<input id="tokenInput" type="text" placeholder="GitHub Token(任意)" style="max-width:170px"/>
+<input id="m3u8Input" type="text" placeholder="旧TS用: 元m3u8 URLが分かれば入力 (INIT取得) 任意" style="flex:2"/>
+<input id="tokenInput" type="text" placeholder="GitHub Token" style="max-width:150px"/>
 </div>
 <div class="row" style="margin-top:8px">
-<label class="pill"><input id="autoPlay" type="checkbox" checked style="vertical-align:middle"/> 自動再生</label>
-<label class="pill"><input id="preferMp4" type="checkbox" checked style="vertical-align:middle"/> .mp4優先</label>
-<button id="copyM3u8" class="ghost">m3u8コピー</button>
-<button id="pipBtn" class="ghost">PiP</button>
-</div>
-<div class="bar"><div id="progress"></div></div>
-<div class="row" style="margin-top:10px">
+<label class="pill"><input id="autoPlay" type="checkbox" checked> 自動再生</label>
+<label class="pill"><input id="preferMp4" type="checkbox" checked> .mp4優先</label>
 <span id="status" class="pill">待機</span>
 <span id="count" class="pill">0 files</span>
 <span id="typeStat" class="pill">type:-</span>
 <span id="apiStat" class="pill">API:-</span>
 <span id="timeStat" class="pill">-</span>
-<span id="modeStat" class="pill">-</span>
 </div>
+<div class="bar"><div id="progress"></div></div>
 <div id="errBox" style="display:none;margin-top:8px;background:#2a1215;border:1px solid #5a1f23;color:#ffa198;border-radius:8px;padding:8px;font-size:12px;white-space:pre-wrap"></div>
-<div class="hint">対応: <code>/releases/tag/xxx</code> / <code>/releases/download/xxx/</code> / 直接ファイルURL / <code>?url=</code> で自動再生。CORSは <code>releases/download</code> は <code>*</code> なので直接取得可能。</div>
 </div>
 
 <div class="grid2">
 <div class="card">
 <video id="video" controls playsinline crossorigin="anonymous"></video>
 <div class="row" style="margin-top:10px">
-<button id="playHls" class="secondary">HLS</button>
+<button id="playHls" class="secondary">HLS再生</button>
 <button id="playMp4" class="secondary">MP4連結</button>
-<button id="playTs" class="secondary">TS連結(mux.js)</button>
+<button id="playTs" class="secondary">TS連結</button>
 <button id="playDirect" class="ghost">1件直接</button>
-<button id="dlBtn" class="ghost">連結DL</button>
-<span style="margin-left:auto" class="pill">速度 <input id="rate" type="range" min="0.25" max="2" step="0.25" value="1" style="width:80px;vertical-align:middle"/> <span id="rateLabel">1x</span></span>
+<button id="dlConcat" class="ghost">連結DL</button>
 </div>
-<div id="videoInfo" class="hint">-</div>
+<div id="videoInfo" style="font-size:11px;color:var(--muted);margin-top:6px">-</div>
 </div>
 
 <div class="card">
-<strong style="font-size:12px">🔍 診断 / 互換性</strong>
-<div id="diag" style="font-size:11px;margin-top:6px;white-space:pre-wrap">未診断</div>
-<div style="margin-top:8px"><strong style="font-size:11px">先頭HEX</strong><div id="hex" class="hex"></div></div>
-<div id="initInfo" class="pill" style="margin-top:8px">INIT: 未取得</div>
+<strong style="font-size:13px">📄 m3u8 生成・ダウンロード</strong>
+<div class="row" style="margin-top:8px">
+<button id="genM3u8" class="warn">m3u8生成</button>
+<button id="copyM3u8" class="secondary">コピー</button>
+<button id="dlM3u8" class="secondary">m3u8 DL</button>
+<button id="dlM3u8Vlc" class="secondary">VLC用m3u8 DL</button>
+</div>
 <div style="margin-top:8px;font-size:11px;color:var(--muted)">
-<b>Go最新版の改善点:</b><br>
-• <code>resolvePlaylist()</code>でリダイレクト追跡 + Master→Media解決<br>
-• <code>EXT-X-MAP</code>を初回取得し各ファイル先頭に書き込み<br>
-• fMP4なら拡張子を <code>.mp4</code> に (旧版は.tsで再生不可)<br>
-• 監視が5回失敗で元URLから再解決 (自動修復)
+• <b>通常m3u8</b>: GitHubの絶対URLで生成。hls.js / VLCでそのまま再生可能<br>
+• <b>VLC用</b>: fMP4の場合 EXT-X-MAP を含む (INIT別ファイルの場合)。新Go版は各ファイルにINIT込みなのでMAP不要<br>
+• 生成後は下にプレビュー表示 → VLCにドラッグ&ドロップで再生できます
+</div>
+<div id="m3u8Preview" class="m3u8box" style="margin-top:10px;display:none"></div>
+<div id="m3u8Info" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+<div style="margin-top:10px">
+<strong style="font-size:11px">診断</strong>
+<div id="diag" style="font-size:11px;white-space:pre-wrap;margin-top:4px">未診断</div>
+<div id="hex" class="hex" style="margin-top:6px"></div>
 </div>
 </div>
 </div>
@@ -138,11 +137,12 @@ button.ghost{background:transparent;border:1px solid var(--border);color:var(--m
 
 <script>
 const $=s=>document.querySelector(s);
-const logEl=$('#log'), fileList=$('#fileList'), video=$('#video'), diagEl=$('#diag'), hexEl=$('#hex'), errBox=$('#errBox'), initInfo=$('#initInfo');
-const statusEl=$('#status'), countEl=$('#count'), typeStat=$('#typeStat'), apiStat=$('#apiStat'), timeStat=$('#timeStat'), modeStat=$('#modeStat'), progEl=$('#progress');
-let currentUrls=[], allAssets=[], firstBytes=null, initData=null, detectedType='unknown', currentM3u8='', hls=null;
+const logEl=$('#log'), fileList=$('#fileList'), video=$('#video'), diagEl=$('#diag'), hexEl=$('#hex'), errBox=$('#errBox');
+const statusEl=$('#status'), countEl=$('#count'), typeStat=$('#typeStat'), apiStat=$('#apiStat'), timeStat=$('#timeStat'), progEl=$('#progress');
+const m3u8Preview=$('#m3u8Preview'), m3u8Info=$('#m3u8Info');
+let currentUrls=[], allAssets=[], firstBytes=null, initData=null, initMapUrl=null, detectedType='unknown', currentM3u8='', hls=null;
 
-const log=(m)=>{ const t=new Date().toLocaleTimeString(); logEl.textContent+=`[${t}] ${m}\n`; logEl.scrollTop=logEl.scrollHeight; console.log(m); };
+const log=(m)=>{ const t=new Date().toLocaleTimeString(); logEl.textContent+=`[${t}] ${m}\n`; logEl.scrollTop=logEl.scrollHeight; };
 const setStatus=(s,cls='')=>{ statusEl.textContent=s; statusEl.className='pill '+cls; };
 const setProgress=(p)=>{ progEl.style.width=Math.min(100,p)+'%'; };
 const showErr=(m)=>{ errBox.style.display='block'; errBox.textContent=m; };
@@ -151,7 +151,6 @@ const hideErr=()=>{ errBox.style.display='none'; };
 function parseReleaseUrl(input){
   input=(input||'').trim();
   if(!input) return null;
-  // direct file
   let m=input.match(/https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/?#]+)\/([^?#]+\.(?:ts|mp4|m4s))/i);
   if(m){
     const owner=m[1], repo=m[2], tag=decodeURIComponent(m[3]);
@@ -184,13 +183,9 @@ function renderList(assets){
     const name=a.name||a.split('/').pop();
     const url=a.browser_download_url||a;
     const aEl=document.createElement('a'); aEl.href=url; aEl.target='_blank'; aEl.textContent=name;
-    const meta=document.createElement('span');
-    const size=a.size? (a.size/1024/1024).toFixed(1)+'MB' : '';
-    meta.textContent=`${size} #${i}`;
-    meta.style.color='#8aa0b8';
+    const meta=document.createElement('span'); meta.textContent=(a.size? (a.size/1024/1024).toFixed(1)+'MB ' : '')+`#${i}`; meta.style.color='#8aa0b8';
     if(name.endsWith('.mp4')) li.style.borderColor='var(--accent)';
     if(name.endsWith('.ts')) li.style.borderColor='var(--accent2)';
-    if(name.endsWith('.m3u8')||name.includes('key')) li.style.borderColor='var(--warn)';
     li.appendChild(aEl); li.appendChild(meta); fileList.appendChild(li);
   });
   $('#listCount').textContent=`(${assets.length})`;
@@ -216,13 +211,12 @@ function detectType(buf){
   const ascii=new TextDecoder().decode(v.slice(0,128));
   if(ascii.includes('ftyp')){
     const full=new TextDecoder().decode(v.slice(0,1024));
-    if(full.includes('moof')) return 'fmp4-with-init'; // has init + fragment
-    return 'fmp4-init'; // maybe only init? or init only file
+    if(full.includes('moof')) return 'fmp4-with-init';
+    return 'fmp4-init';
   }
   const txt=new TextDecoder().decode(v.slice(0,2048));
   if(txt.includes('moof') && txt.includes('mdat')) return 'fmp4-fragment';
-  // check box
-  if(v[4]===0x6D && v[5]===0x6F && v[6]===0x6F && v[7]===0x66) return 'fmp4-fragment'; // moof
+  if(v[4]===0x6D && v[5]===0x6F && v[6]===0x6F && v[7]===0x66) return 'fmp4-fragment';
   return 'unknown';
 }
 
@@ -234,16 +228,7 @@ function diagnose(buf,url){
   typeStat.textContent=`type:${type}`;
   d+=`推定: ${type}\n`;
   let sync=0; for(let i=0;i<Math.min(v.length,188*10); i+=188) if(v[i]===0x47) sync++;
-  d+=`TS sync 0x47: ${sync}/10\n`;
-  if(type==='mpeg-ts') d+=`✅ MPEG-TS (旧方式) - HLS/mux.jsで再生可\n`;
-  else if(type==='fmp4-with-init') d+=`✅ fMP4 INIT込み (新Go版) - VLC/ブラウザで直接再生可。連結時はINIT重複に注意\n`;
-  else if(type==='fmp4-fragment') d+=`⚠️ fMP4フラグメントのみ (旧版の不具合) - INITが必要。m3u8 URLを入力してください\n`;
-  else if(type==='fmp4-init') d+=`ℹ️ fMP4 INITっぽい - 単体では映像なし\n`;
-  else d+=`❓ 不明 - 暗号化の可能性も\n`;
-  // entropy
-  const freq=new Array(256).fill(0); for(let b of v) freq[b]++;
-  let ent=0; for(let f of freq){ if(f>0){ const p=f/v.length; ent-=p*Math.log2(p);} }
-  d+=`エントロピー: ${ent.toFixed(2)}/8 ${ent>7.6?'高い':''}\n`;
+  d+=`TS sync: ${sync}/10\n`;
   return d;
 }
 
@@ -270,23 +255,20 @@ async function fetchInitFromM3U8(m3u8Url){
     const mapUri=mapMatch[1];
     const mapUrl=new URL(mapUri, m3u8Url).href;
     log(`INIT URL: ${mapUrl}`);
+    initMapUrl=mapUrl;
     const mapRes=await fetch(mapUrl,{mode:'cors', cache:'no-store'});
     if(!mapRes.ok) throw new Error(`INIT ${mapRes.status}`);
     const ab=await mapRes.arrayBuffer();
     log(`INIT取得 ${ab.byteLength} bytes`);
-    initInfo.textContent=`INIT: ${ab.byteLength} bytes`;
-    initInfo.className='pill ok';
     return ab;
   }catch(e){ log(`INIT取得失敗 ${e.message}`); return null; }
 }
 
-// 高速並列探索 (mp4優先、tsフォールバック)
 async function probeFast(base, opts={}){
   const {max=800, batchSize=20, maxConsecutiveFails=10, onBatch, preferMp4=true} = opts;
   const exts=preferMp4? ['mp4','ts'] : ['ts','mp4'];
   log(`並列探索 exts=${exts.join(',')} batch=${batchSize}`);
   let map=new Map(), fails=0, checked=0;
-  // まずmp4を試し、次にts
   for(const ext of exts){
     map.clear(); fails=0; checked=0;
     for(let start=0; start<max; start+=batchSize){
@@ -309,9 +291,6 @@ async function probeFast(base, opts={}){
       if(onBatch) onBatch(sorted, ext);
       if(map.size>0 && fails>=maxConsecutiveFails) break;
       if(map.size===0 && start>80) break;
-      if(map.size>=5 && checked<max && $('#autoPlay').checked && start===0){
-        // early play hint
-      }
     }
     if(map.size>0){
       log(`発見 ${map.size}件 ext=${ext}`);
@@ -321,155 +300,146 @@ async function probeFast(base, opts={}){
   return [];
 }
 
-// 判定: moofのオフセット
 function findMoofOffset(u8){
-  // search 'moof' ascii
   for(let i=0;i<u8.length-4;i++){
-    if(u8[i]===0x6D && u8[i+1]===0x6F && u8[i+2]===0x6F && u8[i+3]===0x66) return Math.max(0,i-4); // include size
+    if(u8[i]===0x6D && u8[i+1]===0x6F && u8[i+2]===0x6F && u8[i+3]===0x66) return Math.max(0,i-4);
   }
   return -1;
 }
 
-// 再生系
-function buildM3u8(urls, target=6){
-  const lines=['#EXTM3U','#EXT-X-VERSION:7',`#EXT-X-TARGETDURATION:${target}`,'#EXT-X-MEDIA-SEQUENCE:0','#EXT-X-PLAYLIST-TYPE:VOD'];
-  // if we have initData, need EXT-X-MAP? For HLS fMP4 we can inject, but for simplicity treat as separate
-  for(const u of urls){ lines.push(`#EXTINF:${target}.0,`); lines.push(u); }
+// m3u8生成 (メイン機能)
+function buildM3u8(urls, opts={}){
+  const {isFmp4=false, mapUrl=null, targetDuration=6, useMap=false} = opts;
+  const version=isFmp4? 7 : 3;
+  const lines=['#EXTM3U',`#EXT-X-VERSION:${version}`,`#EXT-X-TARGETDURATION:${targetDuration}`,`#EXT-X-MEDIA-SEQUENCE:0`,'#EXT-X-PLAYLIST-TYPE:VOD'];
+  if(useMap && mapUrl){
+    lines.push(`#EXT-X-MAP:URI="${mapUrl}"`);
+  }
+  for(const u of urls){
+    lines.push(`#EXTINF:${targetDuration}.0,`);
+    lines.push(u);
+  }
   lines.push('#EXT-X-ENDLIST');
   return lines.join('\n');
 }
 
+function generateM3u8(){
+  if(currentUrls.length===0){ alert('ファイルがありません。先に読み込みしてください'); return null; }
+  const isFmp4=detectedType.includes('fmp4') || currentUrls[0].endsWith('.mp4');
+  // MAPは旧TSのfmp4-fragmentの場合のみ必要
+  let mapUrlForM3u8=null;
+  let useMap=false;
+  if(isFmp4 && detectedType==='fmp4-fragment' && initMapUrl){
+    mapUrlForM3u8=initMapUrl;
+    useMap=true;
+  } else if(isFmp4 && initData && initMapUrl){
+    mapUrlForM3u8=initMapUrl;
+    useMap=true;
+  }
+  // 新Go版は各ファイルにINIT込みなのでMAP不要
+  const m3u8=buildM3u8(currentUrls, {isFmp4, mapUrl:mapUrlForM3u8, useMap});
+  currentM3u8=m3u8;
+  m3u8Preview.style.display='block';
+  m3u8Preview.textContent=m3u8;
+  const info=`生成: ${currentUrls.length}件 | type=${detectedType} | ${isFmp4?'fMP4(v7)':'TS(v3)'} ${useMap?'+ MAP':''} | ${m3u8.length} bytes`;
+  m3u8Info.textContent=info;
+  log(`m3u8生成 ${info}`);
+  return m3u8;
+}
+
+function downloadText(filename, text, mime='application/vnd.apple.mpegurl'){
+  const blob=new Blob([text],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  log(`DL ${filename} ${text.length} bytes`);
+}
+
+// 再生系
 async function playHls(urls){
-  modeStat.textContent='mode:hls';
-  currentM3u8=buildM3u8(urls);
-  const blob=new Blob([currentM3u8],{type:'application/vnd.apple.mpegurl'});
+  const m3u8=buildM3u8(urls, {isFmp4:detectedType.includes('fmp4'), mapUrl:initMapUrl, useMap:!!initMapUrl && detectedType==='fmp4-fragment'});
+  currentM3u8=m3u8;
+  const blob=new Blob([m3u8],{type:'application/vnd.apple.mpegurl'});
   const blobUrl=URL.createObjectURL(blob);
   if(hls){ try{hls.destroy();}catch{} }
   if(Hls.isSupported()){
-    hls=new Hls({enableWorker:true, lowLatencyMode:false, maxBufferLength:60});
+    hls=new Hls({enableWorker:true, maxBufferLength:60});
     hls.loadSource(blobUrl);
     hls.attachMedia(video);
     return new Promise((res,rej)=>{
       hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ video.play().then(res).catch(rej); setStatus('再生中 HLS','ok'); });
-      hls.on(Hls.Events.ERROR, (e,d)=>{ if(d.fatal){ rej(new Error(d.details)); } });
+      hls.on(Hls.Events.ERROR,(e,d)=>{ if(d.fatal) rej(new Error(d.details)); });
       setTimeout(()=>rej(new Error('HLS timeout')),15000);
     });
   } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-    video.src=blobUrl;
-    await video.play();
-    setStatus('再生中 Safari HLS','ok');
+    video.src=blobUrl; await video.play(); setStatus('再生中 Safari HLS','ok');
   } else throw new Error('HLS unsupported');
 }
 
 async function playMp4Concat(urls, initOverride=null){
-  modeStat.textContent='mode:mp4';
   let init=initOverride||initData;
-  // if first file already has init, we can use it
-  if(!init && detectedType==='fmp4-fragment'){
-    const m3u8Url=$('#m3u8Input').value.trim();
-    if(m3u8Url) init=await fetchInitFromM3U8(m3u8Url);
-  }
-
   setStatus('MP4 DL中...');
-  const bufs=[];
-  let total=0;
-  let firstMoof=-1;
-  for(let i=0;i<urls.length;i++){
-    setProgress((i/urls.length)*100);
-    const r=await fetch(urls[i],{mode:'cors', cache:'no-store'});
-    if(!r.ok){ log(`DL失敗 ${urls[i]} ${r.status}`); continue; }
-    const ab=await r.arrayBuffer();
-    const u8=new Uint8Array(ab);
-    if(i===0){
-      firstMoof=findMoofOffset(u8);
-      log(`first file moof offset=${firstMoof} len=${u8.length}`);
-      if(firstMoof>0 && detectedType==='fmp4-with-init'){
-        // first file already has init, keep all
-        bufs.push(u8);
-        total+=u8.length;
-      } else if(init){
-        // prepend init + fragment (if fragment has no init)
-        const combined=new Uint8Array(init.byteLength+u8.length);
-        combined.set(new Uint8Array(init),0);
-        combined.set(u8, init.byteLength);
-        bufs.push(combined);
-        total+=combined.length;
-      } else {
-        bufs.push(u8); total+=u8.length;
-      }
-    } else {
-      // subsequent files: if they are new version with init, strip init
-      const moof=findMoofOffset(u8);
-      if(moof>0 && detectedType==='fmp4-with-init'){
-        const sliced=u8.slice(moof);
-        bufs.push(sliced); total+=sliced.length;
-        log(`strip INIT ${i} moof=${moof} keep ${sliced.length}`);
-      } else {
-        bufs.push(u8); total+=u8.length;
-      }
-    }
-  }
-
-  const merged=new Uint8Array(total);
-  let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
-  const blob=new Blob([merged],{type:'video/mp4'});
-  const url=URL.createObjectURL(blob);
-  window._lastBlobUrl=url; window._lastBlob=blob;
-
-  // MSE or direct?
-  try{
-    // try MSE for better seeking
-    const ms=new MediaSource();
-    video.src=URL.createObjectURL(ms);
-    await new Promise((resolve,reject)=>{
-      ms.addEventListener('sourceopen', async ()=>{
-        const mime='video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
-        const mime2='video/mp4; codecs="avc1.64002A, mp4a.40.2"';
-        const mime3='video/mp4; codecs="avc1.64001F, mp4a.40.2"';
-        let useMime=mime;
-        if(!MediaSource.isTypeSupported(mime)){
-          if(MediaSource.isTypeSupported(mime2)) useMime=mime2;
-          else if(MediaSource.isTypeSupported(mime3)) useMime=mime3;
-          else { reject(new Error('MSE mime unsupported')); return; }
-        }
-        const sb=ms.addSourceBuffer(useMime);
-        let idx=0;
-        const appendNext=()=>{
-          if(idx>=bufs.length){ if(ms.readyState==='open') ms.endOfStream(); setStatus(`再生中 MP4 ${(total/1024/1024).toFixed(1)}MB`,'ok'); resolve(); return; }
-          if(sb.updating){ setTimeout(appendNext, 30); return; }
-          try{ sb.appendBuffer(bufs[idx]); idx++; }catch(e){ reject(e); return; }
-        };
-        sb.addEventListener('updateend', appendNext);
-        sb.addEventListener('error', (e)=>reject(new Error('SourceBuffer error')));
-        // start with first
-        try{ sb.appendBuffer(bufs[0]); idx=1; video.play().catch(()=>{}); }catch(e){ reject(e); }
-      });
-    });
-  }catch(e){
-    log(`MSE失敗 ${e.message} → Blob直接再生にフォールバック`);
-    video.src=url;
-    await video.play();
-    setStatus(`再生中 MP4 Blob ${(total/1024/1024).toFixed(1)}MB`,'ok');
-  }
-}
-
-async function playTsConcat(urls){
-  modeStat.textContent='mode:ts';
-  setStatus('TS DL中...');
-  const bufs=[];
-  let total=0;
+  const bufs=[]; let total=0;
   for(let i=0;i<urls.length;i++){
     setProgress((i/urls.length)*100);
     const r=await fetch(urls[i],{mode:'cors', cache:'no-store'});
     if(!r.ok) continue;
     const ab=await r.arrayBuffer();
-    bufs.push(new Uint8Array(ab));
-    total+=ab.byteLength;
+    const u8=new Uint8Array(ab);
+    if(i===0){
+      bufs.push(u8); total+=u8.length;
+    } else {
+      const moof=findMoofOffset(u8);
+      if(moof>0 && detectedType==='fmp4-with-init'){
+        const sliced=u8.slice(moof);
+        bufs.push(sliced); total+=sliced.length;
+      } else {
+        bufs.push(u8); total+=u8.length;
+      }
+    }
+  }
+  if(init && detectedType==='fmp4-fragment'){
+    const initU8=new Uint8Array(init);
+    bufs.unshift(initU8); total+=initU8.length;
   }
   const merged=new Uint8Array(total);
   let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
+  const blob=new Blob([merged],{type:'video/mp4'});
+  const url=URL.createObjectURL(blob);
+  window._lastBlobUrl=url; window._lastBlob=blob;
+  try{
+    const ms=new MediaSource();
+    video.src=URL.createObjectURL(ms);
+    await new Promise((resolve,reject)=>{
+      ms.addEventListener('sourceopen', async ()=>{
+        const mime='video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        if(!MediaSource.isTypeSupported(mime)){ reject(new Error('MSE mime unsupported')); return; }
+        const sb=ms.addSourceBuffer(mime);
+        let idx=0;
+        const append=()=>{
+          if(idx>=bufs.length){ if(ms.readyState==='open') ms.endOfStream(); setStatus(`再生中 MP4 ${(total/1024/1024).toFixed(1)}MB`,'ok'); resolve(); return; }
+          if(sb.updating){ setTimeout(append,30); return; }
+          try{ sb.appendBuffer(bufs[idx]); idx++; }catch(e){ reject(e); }
+        };
+        sb.addEventListener('updateend', append);
+        try{ sb.appendBuffer(bufs[0]); idx=1; video.play().catch(()=>{}); }catch(e){ reject(e); }
+      });
+    });
+  }catch(e){
+    video.src=url; await video.play(); setStatus(`再生中 MP4 Blob ${(total/1024/1024).toFixed(1)}MB`,'ok');
+  }
+}
 
-  // try mux.js -> MP4
+async function playTsConcat(urls){
+  setStatus('TS DL中...');
+  const bufs=[]; let total=0;
+  for(let i=0;i<urls.length;i++){
+    setProgress((i/urls.length)*100);
+    const r=await fetch(urls[i],{mode:'cors', cache:'no-store'});
+    if(!r.ok) continue;
+    const ab=await r.arrayBuffer();
+    bufs.push(new Uint8Array(ab)); total+=ab.byteLength;
+  }
   if(window.muxjs){
     const ms=new MediaSource();
     video.src=URL.createObjectURL(ms);
@@ -484,20 +454,17 @@ async function playTsConcat(urls){
           for(const b of bufs){ transmuxer.push(b); transmuxer.flush(); while(queue.length>0 && !sb.updating){ sb.appendBuffer(queue.shift()); await new Promise(r=>setTimeout(r,10)); } }
           while(queue.length>0 || sb.updating){ if(queue.length>0 && !sb.updating) sb.appendBuffer(queue.shift()); await new Promise(r=>setTimeout(r,80)); }
           if(ms.readyState==='open') ms.endOfStream();
-          setStatus('再生中 TS->MP4 mux.js','ok'); resolve();
+          setStatus('再生中 TS->MP4','ok'); resolve();
         }catch(e){ reject(e); }
       });
     });
   } else {
-    const blob=new Blob([merged],{type:'video/mp2t'});
-    const url=URL.createObjectURL(blob);
-    video.src=url;
-    await video.play();
-    setStatus(`TS Blob ${(total/1024/1024).toFixed(1)}MB`,'ok');
+    const merged=new Uint8Array(total); let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
+    const blob=new Blob([merged],{type:'video/mp2t'}); const url=URL.createObjectURL(blob); video.src=url; await video.play(); setStatus(`TS Blob ${(total/1024/1024).toFixed(1)}MB`,'ok');
   }
 }
 
-async function handleLoad(isProbeOnly=false){
+async function handleLoad(isProbe=false){
   const input=$('#urlInput').value.trim();
   const token=$('#tokenInput').value.trim();
   const m3u8Url=$('#m3u8Input').value.trim();
@@ -505,35 +472,28 @@ async function handleLoad(isProbeOnly=false){
   const parsed=parseReleaseUrl(input);
   if(!parsed){ log('URL解析失敗'); return; }
   const tStart=performance.now();
-  log(`解析 owner=${parsed.owner} repo=${parsed.repo} tag=${parsed.tag} base=${parsed.base}`);
-  setStatus('取得中...'); logEl.textContent=''; diagEl.textContent='診断中...'; hexEl.textContent=''; hideErr(); fileList.innerHTML='';
-  currentUrls=[]; allAssets=[]; initData=null;
+  log(`解析 ${parsed.owner}/${parsed.repo} tag=${parsed.tag}`);
+  setStatus('取得中...'); logEl.textContent=''; diagEl.textContent='診断中...'; hexEl.textContent=''; hideErr(); fileList.innerHTML=''; m3u8Preview.style.display='none';
+  currentUrls=[]; allAssets=[]; initData=null; initMapUrl=null;
 
-  let assets=[];
-  let urls=[];
-  const preferMp4=$('#preferMp4').checked;
+  let assets=[]; let urls=[]; const preferMp4=$('#preferMp4').checked;
 
   if(parsed.directFile){
     urls=[parsed.directFile];
     assets=urls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
-  } else if(!isProbeOnly){
+  } else if(!isProbe){
     try{
       const ghAssets=await fetchReleaseAssets(parsed.owner, parsed.repo, parsed.tag, token);
-      allAssets=ghAssets;
-      assets=ghAssets;
-      // .mp4 と .ts 両方対象、名前順
+      allAssets=ghAssets; assets=ghAssets;
       const mediaAssets=ghAssets.filter(a=>{ const n=a.name.toLowerCase(); return n.endsWith('.mp4')||n.endsWith('.ts')||n.endsWith('.m4s'); }).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
       urls=mediaAssets.map(a=>a.browser_download_url);
       if(urls.length===0){
         log('APIにメディア無し→高速探索');
-        urls=await probeFast(parsed.base, {preferMp4, onBatch:(u,ext)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
+        urls=await probeFast(parsed.base, {preferMp4, onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
         assets=urls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0})).concat(ghAssets);
-      } else {
-        log(`APIで ${urls.length}件検出 (${mediaAssets.map(a=>a.name).slice(0,3).join(',')}...)`);
       }
     }catch(e){
       log(`API失敗 ${e.message} →探索`);
-      apiStat.textContent='API:失敗';
       urls=await probeFast(parsed.base, {preferMp4, onBatch:(u)=>{ renderList(u.map(x=>({name:x.split('/').pop(), browser_download_url:x, size:0}))); }});
       assets=urls.map(u=>({name:u.split('/').pop(), browser_download_url:u, size:0}));
     }
@@ -544,51 +504,40 @@ async function handleLoad(isProbeOnly=false){
 
   if(assets.length===0){ setStatus('見つからず','err'); return; }
   renderList(assets);
-  currentUrls=urls.filter(u=>u.toLowerCase().endsWith('.mp4')||u.toLowerCase().endsWith('.ts')||u.toLowerCase().endsWith('.m4s'));
+  currentUrls=urls.filter(u=>{ const l=u.toLowerCase(); return l.endsWith('.mp4')||l.endsWith('.ts')||l.endsWith('.m4s'); });
   countEl.textContent=`${currentUrls.length} media / ${assets.length} total`;
   setProgress(65);
 
-  // 診断
   if(currentUrls.length>0){
     const first=currentUrls[0];
-    log(`診断用先頭取得: ${first}`);
+    log(`診断: ${first}`);
     const ab=await fetchFirstBytes(first, 4096);
     if(ab){
       firstBytes=ab;
       diagEl.textContent=diagnose(ab, first);
       hexEl.textContent=hexDump(new Uint8Array(ab), 256);
-      // INIT取得 (旧TSがfMP4フラグメントだった場合)
-      if((detectedType==='fmp4-fragment' || detectedType==='fmp4-with-init') && m3u8Url){
+      if((detectedType==='fmp4-fragment') && m3u8Url){
         const init=await fetchInitFromM3U8(m3u8Url);
         if(init) initData=init;
-      } else if(detectedType==='fmp4-fragment'){
-        showErr('このファイルは旧版の不具合でINITなしのfMP4フラグメントです。\n上の「元m3u8 URL」欄に元のm3u8を入れるとINITを取得して再生できます。\n新版Goで再録画した out-*.mp4 はINIT込みなのでそのまま再生できます。');
       }
+      // 自動m3u8生成
+      generateM3u8();
     }
   }
 
   setProgress(100);
   timeStat.textContent=`${((performance.now()-tStart)/1000).toFixed(2)}s`;
 
-  // 自動再生
   if($('#autoPlay').checked && currentUrls.length>0){
     try{
       if(detectedType.includes('mp4') || detectedType==='fmp4-with-init' || currentUrls[0].endsWith('.mp4')){
         await playMp4Concat(currentUrls, initData);
-      } else if(detectedType==='mpeg-ts'){
-        // HLSが速い
-        try{ await playHls(currentUrls); }catch(e){ log(`HLS失敗 ${e.message} → TS連結`); await playTsConcat(currentUrls); }
       } else {
-        await playMp4Concat(currentUrls, initData);
+        try{ await playHls(currentUrls); }catch(e){ log(`HLS失敗 ${e.message}`); await playTsConcat(currentUrls); }
       }
-    }catch(e){
-      showErr(`自動再生失敗: ${e.message}`);
-      log(`自動再生失敗 ${e.message}`);
-      setStatus('自動再生失敗、手動で試してください','err');
-      return;
-    }
+    }catch(e){ showErr(`自動再生失敗: ${e.message}`); setStatus('自動再生失敗','err'); }
   } else {
-    setStatus('準備完了、再生ボタンを押してください','warn');
+    setStatus('準備完了','ok');
   }
 }
 
@@ -598,37 +547,41 @@ $('#probeBtn').addEventListener('click', ()=>handleLoad(true));
 $('#playHls').addEventListener('click', ()=>{ if(currentUrls.length) playHls(currentUrls).catch(e=>showErr('HLS失敗 '+e.message)); });
 $('#playMp4').addEventListener('click', ()=>{ if(currentUrls.length) playMp4Concat(currentUrls).catch(e=>showErr('MP4失敗 '+e.message)); });
 $('#playTs').addEventListener('click', ()=>{ if(currentUrls.length) playTsConcat(currentUrls).catch(e=>showErr('TS失敗 '+e.message)); });
-$('#playDirect').addEventListener('click', async()=>{ if(currentUrls.length){ video.src=currentUrls[0]; try{ await video.play(); setStatus('Direct再生','ok'); }catch(e){ showErr('Direct失敗 '+e.message); } } });
-$('#dlBtn').addEventListener('click', async()=>{
+$('#playDirect').addEventListener('click', async()=>{ if(currentUrls.length){ video.src=currentUrls[0]; try{ await video.play(); setStatus('Direct','ok'); }catch(e){ showErr('Direct失敗 '+e.message); } } });
+$('#dlConcat').addEventListener('click', async()=>{
   if(currentUrls.length===0) return;
-  // 連結DL (MP4ならINIT重複除去)
   const bufs=[]; let total=0;
   for(let i=0;i<currentUrls.length;i++){
-    const r=await fetch(currentUrls[i],{mode:'cors'});
-    const ab=await r.arrayBuffer();
-    const u8=new Uint8Array(ab);
-    if(i>0 && detectedType.includes('fmp4')){
-      const moof=findMoofOffset(u8);
-      if(moof>0){ const sl=u8.slice(moof); bufs.push(sl); total+=sl.length; continue; }
-    }
+    const r=await fetch(currentUrls[i],{mode:'cors'}); const ab=await r.arrayBuffer(); const u8=new Uint8Array(ab);
+    if(i>0 && detectedType==='fmp4-with-init'){ const moof=findMoofOffset(u8); if(moof>0){ const sl=u8.slice(moof); bufs.push(sl); total+=sl.length; continue; } }
     bufs.push(u8); total+=ab.byteLength;
   }
-  let finalBufs=bufs;
-  if(initData && detectedType==='fmp4-fragment'){
-    finalBufs=[new Uint8Array(initData), ...bufs];
-    total+=initData.byteLength;
-  }
-  const merged=new Uint8Array(total);
-  let off=0; for(const b of finalBufs){ merged.set(b,off); off+=b.length; }
+  if(initData && detectedType==='fmp4-fragment'){ const initU8=new Uint8Array(initData); bufs.unshift(initU8); total+=initU8.length; }
+  const merged=new Uint8Array(total); let off=0; for(const b of bufs){ merged.set(b,off); off+=b.length; }
   const ext=detectedType.includes('mp4')||currentUrls[0].endsWith('.mp4')?'mp4':'ts';
-  const blob=new Blob([merged],{type:ext==='mp4'?'video/mp4':'video/mp2t'});
-  const url=URL.createObjectURL(blob);
+  const blob=new Blob([merged],{type:ext==='mp4'?'video/mp4':'video/mp2t'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`concat-${Date.now()}.${ext}`; a.click();
 });
-$('#copyM3u8').addEventListener('click', async()=>{ if(!currentM3u8){ alert('m3u8未生成'); return; } await navigator.clipboard.writeText(currentM3u8); log('m3u8コピー'); });
+
+// m3u8生成・DL
+$('#genM3u8').addEventListener('click', ()=>{ generateM3u8(); });
+$('#copyM3u8').addEventListener('click', async()=>{
+  if(!currentM3u8){ const m=generateM3u8(); if(!m) return; }
+  await navigator.clipboard.writeText(currentM3u8); log('m3u8コピー'); setStatus('m3u8コピー','ok');
+});
+$('#dlM3u8').addEventListener('click', ()=>{
+  let m=currentM3u8; if(!m) m=generateM3u8(); if(!m) return;
+  downloadText(`playlist-${Date.now()}.m3u8`, m);
+});
+$('#dlM3u8Vlc').addEventListener('click', ()=>{
+  let m=currentM3u8; if(!m) m=generateM3u8(); if(!m) return;
+  // VLC用: 絶対URL + 必要ならMAPを絶対URLで
+  // 既に絶対URLなので同じだが、ファイル名をVLC用に
+  downloadText(`vlc-${Date.now()}.m3u8`, m);
+});
+
 $('#clearLog').addEventListener('click', ()=>{ logEl.textContent=''; });
-$('#rate').addEventListener('input', e=>{ const v=parseFloat(e.target.value); video.playbackRate=v; $('#rateLabel').textContent=v+'x'; });
-$('#pipBtn').addEventListener('click', async()=>{ try{ if(document.pictureInPictureElement) await document.exitPictureInPicture(); else await video.requestPictureInPicture(); }catch(e){ log('PiP失敗 '+e.message); } });
+$('#rate').addEventListener('input', e=>{ const v=parseFloat(e.target.value); video.playbackRate=v; });
 
 window.addEventListener('DOMContentLoaded', ()=>{
   const sp=new URLSearchParams(location.search);
